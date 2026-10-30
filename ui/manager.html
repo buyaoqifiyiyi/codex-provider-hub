@@ -1,0 +1,2304 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>模型连接</title>
+<style>
+  :root { color-scheme: light dark; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif; --bg:var(--color-background-primary,#fff); --card:var(--color-background-secondary,#f6f6f5); --text:var(--color-text-primary,#20201f); --muted:var(--color-text-secondary,#70706d); --line:var(--color-border-primary,#dededb); --accent:#315cde; --good:#217a4a; --warn:#9a6700; --bad:#b42318; --dialog-safe-bottom:max(96px,var(--host-safe-bottom,0px)); }
+  * { box-sizing:border-box; } body { margin:0; background:var(--bg); color:var(--text); font-size:14px; }
+  main { max-width:1100px; margin:0 auto; padding:12px 32px calc(48px + var(--dialog-safe-bottom)); } header { display:grid; grid-template-columns:max-content minmax(0,1fr); align-items:end; column-gap:24px; margin-bottom:26px; }
+  .eyebrow { grid-column:1 / -1; color:var(--muted); font-size:12px; font-weight:650; letter-spacing:.08em; margin-bottom:8px; } header p { margin-bottom:8px; }
+  h1 { font-size:26px; line-height:1.2; letter-spacing:0; margin:0 0 8px; } h2 { font-size:16px; margin:0; }
+  p { line-height:1.6; color:var(--muted); margin:0; } .layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr); gap:24px; align-items:stretch; }
+  .section-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin:0 0 12px; }
+  .list,.panel { border:1px solid var(--line); border-radius:14px; overflow:hidden; } .empty { padding:24px 18px; color:var(--muted); line-height:1.6; }
+  .profile { display:flex; align-items:center; gap:12px; width:100%; text-align:left; border:0; border-bottom:1px solid var(--line); padding:14px 15px; background:transparent; color:inherit; cursor:pointer; }
+  .profile:last-child { border-bottom:0; } .profile:hover { background:var(--card); } .profile:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .avatar { display:grid; place-items:center; width:36px; height:36px; flex:none; border-radius:10px; background:var(--card); color:var(--accent); font-weight:700; }
+  .profile-copy { display:block; flex:1; min-width:0; } .profile-name { display:block; font-weight:650; overflow-wrap:anywhere; } .profile-sub { display:block; color:var(--muted); font-size:12px; margin-top:3px; overflow-wrap:anywhere; } .badge { color:var(--accent); font-size:11px; margin-left:6px; } .badge.disabled { color:var(--muted); } .chevron { margin-left:auto; color:var(--muted); }
+  .panel { padding:20px; } .form-title { margin-bottom:5px; } .form-note { font-size:12px; margin-bottom:19px; }
+  label { display:block; margin-top:15px; font-size:12px; font-weight:650; } input,select { display:block; width:100%; margin-top:7px; padding:10px 11px; border:1px solid var(--line); border-radius:9px; color:var(--text); background:var(--bg); font:inherit; }
+  .basic-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 18px; } .basic-grid > div { min-width:0; }
+  .model-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:15px; } .model-header label { margin:0; } .model-header .action { padding:7px 11px; }
+  .model-count { display:inline-grid; place-items:center; min-width:20px; height:20px; padding:0 6px; margin-left:4px; border-radius:999px; background:var(--bg); color:var(--text); font-size:11px; font-variant-numeric:tabular-nums; }
+  .model-entry { margin-top:7px; }
+  .selected-models { display:flex; flex-wrap:wrap; gap:6px; min-height:31px; max-height:120px; overflow:auto; margin:8px 0 0; padding:0; list-style:none; }
+  .selected-model { display:inline-flex; align-items:center; min-width:0; max-width:100%; min-height:31px; gap:5px; padding:3px 4px 3px 9px; border:1px solid var(--line); border-radius:8px; background:var(--card); }
+  .selected-model code { min-width:0; overflow:hidden; color:var(--text); font:12px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace; text-overflow:ellipsis; white-space:nowrap; }
+  .remove-model { display:grid; place-items:center; width:24px; height:24px; flex:none; margin:0; padding:0; border:0; border-radius:6px; background:transparent; color:var(--muted); font:18px/1 sans-serif; cursor:pointer; }
+  .remove-model:hover { background:var(--bg); color:var(--text); }
+  .selected-models-empty { align-self:center; color:var(--muted); font-size:12px; }
+  input::placeholder { color:var(--muted); opacity:.8; } .hint { margin-top:6px; font-size:12px; } .actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:22px; }
+  button.action { border:0; border-radius:9px; padding:10px 14px; background:var(--accent); color:white; font:inherit; font-weight:650; cursor:pointer; }
+  button.secondary { background:var(--card); color:var(--text); } button.danger { border:1px solid #c4322b; background:transparent; color:#b42318; } button:disabled { opacity:.55; cursor:wait; } .message { min-height:19px; margin-top:11px; font-size:12px; color:var(--muted); }
+  .notice { margin-top:22px; padding:13px 15px; border-radius:10px; background:var(--card); color:var(--muted); font-size:12px; line-height:1.6; }
+  .cleanup-count { margin:0; align-self:center; }
+  .model-tuning { margin-top:18px; padding-top:12px; border-top:1px solid var(--line); } .model-tuning summary { cursor:pointer; font-size:12px; font-weight:650; } summary:focus-visible { outline:2px solid var(--accent); outline-offset:2px; } .tuning-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 12px; }
+  fieldset { min-width:0; margin:15px 0 0; padding:0; border:0; } legend { padding:0; font-size:12px; font-weight:650; } .checks { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px 12px; margin-top:8px; }
+  .check { display:flex; align-items:center; gap:7px; min-height:34px; margin:0; padding:6px 9px; border:1px solid var(--line); border-radius:8px; font-weight:500; } .check input { width:16px; height:16px; margin:0; accent-color:var(--accent); } .check.is-disabled { opacity:.45; }
+  .confirm-dialog { width:min(440px,calc(100vw - 36px)); max-height:calc(100dvh - 36px - var(--dialog-safe-bottom)); margin:auto auto calc(18px + var(--dialog-safe-bottom)); padding:22px; border:1px solid var(--line); border-radius:14px; background:var(--bg); color:var(--text); overflow:auto; }
+  .confirm-dialog::backdrop { background:rgba(0,0,0,.46); } .confirm-dialog h2 { margin-bottom:9px; } .confirm-dialog .actions { justify-content:flex-end; margin-top:20px; }
+  .evidence-dialog { width:min(560px,calc(100vw - 36px)); }
+  .evidence-identity { color:var(--muted); margin:0 0 16px; overflow-wrap:anywhere; }
+  .evidence-section { padding:12px 0; border-top:1px solid var(--line); }
+  .evidence-section h3 { margin:0 0 7px; font-size:13px; }
+  .evidence-entry { padding:3px 0; }
+  .model-dialog { width:min(720px,calc(100vw - 28px)); max-height:calc(100dvh - 24px - var(--dialog-safe-bottom)); margin:auto auto calc(12px + var(--dialog-safe-bottom)); padding:0; border:1px solid var(--line); border-radius:16px; background:var(--bg); color:var(--text); overflow:hidden; }
+  .model-dialog::backdrop { background:rgba(0,0,0,.46); }
+  .model-dialog-shell { display:grid; grid-template-rows:auto auto auto minmax(0,1fr) auto auto; height:min(680px,calc(100dvh - 24px - var(--dialog-safe-bottom))); min-height:0; padding:22px; overflow-y:auto; }
+  .model-dialog-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+  .model-dialog-head p { margin-top:7px; font-size:12px; }
+  .model-refresh { display:inline-flex; align-items:center; gap:5px; flex:none; padding:7px 10px; border:1px solid var(--line); border-radius:8px; background:transparent; color:var(--text); font:inherit; font-size:12px; font-weight:650; cursor:pointer; }
+  .model-refresh:hover { background:var(--card); } .model-refresh .refresh-icon { display:inline-block; font-size:17px; line-height:1; }
+  .model-refresh.is-loading .refresh-icon { animation:model-spin .8s linear infinite; }
+  .model-toolbar { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:12px; margin-top:18px; }
+  .model-search { position:relative; } .model-search input { margin:0; padding-left:36px; }
+  .model-search svg { position:absolute; left:11px; top:50%; width:16px; height:16px; transform:translateY(-50%); color:var(--muted); pointer-events:none; }
+  .model-bulk { display:flex; align-items:center; gap:4px; }
+  .model-bulk button { padding:7px 8px; border:0; border-radius:7px; background:transparent; color:var(--text); font:inherit; font-size:12px; font-weight:650; cursor:pointer; }
+  .model-bulk button:hover { background:var(--card); } .model-bulk button:disabled { opacity:.45; cursor:not-allowed; }
+  .model-meta { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:35px; color:var(--muted); font-size:12px; }
+  .model-meta .count { font-variant-numeric:tabular-nums; }
+  .only-selected { display:flex; align-items:center; gap:7px; margin:0; font-size:12px; font-weight:500; }
+  .only-selected input { width:15px; height:15px; margin:0; accent-color:var(--accent); }
+  .model-list { min-height:0; margin-top:3px; border:1px solid var(--line); border-radius:10px; overflow:auto; overscroll-behavior:contain; }
+  .model-option { display:grid; grid-template-columns:18px minmax(0,1fr) auto auto; align-items:center; gap:10px; min-height:48px; padding:9px 12px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .model-option:last-child { border-bottom:0; } .model-option:hover { background:var(--card); }
+  .model-option input { width:17px; height:17px; margin:0; accent-color:var(--accent); }
+  .model-option code { min-width:0; overflow-wrap:anywhere; color:var(--text); font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace; }
+  .model-capability { color:var(--muted); font-size:11px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .model-owner { color:var(--muted); font-size:11px; text-align:right; overflow-wrap:anywhere; }
+  .model-list-empty { display:grid; place-items:center; min-height:160px; padding:24px; color:var(--muted); font-size:12px; line-height:1.6; text-align:center; }
+  .model-dialog-status { min-height:19px; margin-top:9px; font-size:12px; }
+  .model-dialog .actions { justify-content:flex-end; margin-top:14px; }
+  .view-tabs { display:flex; gap:4px; margin:0 0 24px; border-bottom:1px solid var(--line); }
+  .view-tab { position:relative; appearance:none; border:0; border-radius:8px 8px 0 0; padding:11px 14px 12px; background:transparent; color:var(--muted); font:inherit; font-weight:650; cursor:pointer; }
+  .view-tab:hover { color:var(--text); background:var(--card); } .view-tab[aria-selected="true"] { color:var(--text); }
+  .view-tab[aria-selected="true"]::after { position:absolute; right:12px; bottom:-1px; left:12px; height:2px; background:var(--accent); content:""; }
+  .schedule-shell { display:grid; gap:20px; }
+  .schedule-topbar,.schedule-section-head { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; }
+  .schedule-topbar h2 { font-size:20px; margin-bottom:5px; } .schedule-topbar p { max-width:720px; font-size:12px; }
+  .schedule-actions { display:flex; flex-wrap:wrap; gap:8px; flex:none; }
+  .schedule-actions .action { display:inline-flex; align-items:center; gap:6px; }
+  .refresh-glyph { display:inline-block; font-size:16px; line-height:1; }
+  .is-loading .refresh-glyph { animation:model-spin .8s linear infinite; }
+  .guard-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+  .guard-card,.effective-card,.schedule-panel,.tier-card { border:1px solid var(--line); border-radius:12px; background:var(--bg); }
+  .guard-card { min-width:0; padding:15px; } .guard-label,.field-label { color:var(--muted); font-size:11px; font-weight:650; letter-spacing:.04em; }
+  .guard-value { display:flex; align-items:center; gap:7px; margin-top:7px; font-weight:650; overflow-wrap:anywhere; }
+  .guard-card p { margin-top:6px; font-size:12px; }
+  .status-dot { width:8px; height:8px; flex:none; border-radius:50%; background:var(--muted); }
+  .status-dot.good { background:var(--good); } .status-dot.warn { background:var(--warn); } .status-dot.bad { background:var(--bad); }
+  .schedule-policy { padding:15px 17px; border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:9px; background:var(--card); }
+  .schedule-policy p { padding-left:17px; position:relative; font-size:12px; } .schedule-policy p + p { margin-top:7px; }
+  .schedule-policy p::before { position:absolute; left:0; content:"·"; color:var(--accent); font-weight:800; }
+  .schedule-panel { padding:18px; overflow:hidden; } .schedule-section-head { align-items:flex-end; margin-bottom:13px; }
+  .schedule-section-head h3 { margin:0; font-size:15px; } .schedule-section-head p { margin-top:4px; font-size:12px; }
+  .snapshot-state { flex:none; color:var(--muted); font-size:11px; font-variant-numeric:tabular-nums; }
+  .effective-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+  .effective-card { min-width:0; padding:14px; background:var(--card); }
+  .effective-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:11px; }
+  .effective-head strong { font-size:13px; } .effective-model { margin-bottom:3px; color:var(--text); font:13px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace; overflow-wrap:anywhere; }
+  .effective-details { display:grid; gap:6px; margin:0; } .effective-details div { display:grid; grid-template-columns:68px minmax(0,1fr); gap:8px; }
+  .effective-details dt { color:var(--muted); font-size:11px; } .effective-details dd { margin:0; font-size:12px; overflow-wrap:anywhere; }
+  .effective-reason,.skipped-box { margin-top:10px; padding-top:9px; border-top:1px solid var(--line); color:var(--muted); font-size:11px; line-height:1.55; }
+  .skipped-box ul { margin:5px 0 0; padding-left:17px; } .skipped-box li + li { margin-top:3px; }
+  .tier-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+  .tier-card { min-width:0; margin:0; padding:15px; }
+  .tier-card legend { max-width:100%; padding:0; font-size:13px; font-weight:700; } .tier-card legend span { color:var(--muted); font-size:11px; font-weight:500; }
+  .tier-card > p { margin:5px 0 0; font-size:11px; }
+  .tier-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 10px; margin-top:2px; }
+  .tier-fields label { margin-top:12px; } .tier-fields select { padding:9px 10px; font-size:12px; }
+  .schedule-form-footer { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-top:16px; }
+  .schedule-form-footer .actions { margin-top:0; }
+  .schedule-message { min-height:19px; flex:1; min-width:200px; margin:0; font-size:12px; }
+  .schedule-message.is-error { color:var(--bad); } .schedule-message.is-success { color:var(--good); } .schedule-message.is-warning { color:var(--warn); }
+  .candidate-list,.audit-list { margin:0; padding:0; list-style:none; }
+  .candidate-row { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(150px,.9fr) auto; align-items:center; gap:8px 12px; padding:11px 0; border-top:1px solid var(--line); }
+  .candidate-row:first-child { border-top:0; } .model-code { min-width:0; color:var(--text); font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace; overflow-wrap:anywhere; }
+  .effort-chips { display:flex; flex-wrap:wrap; gap:4px; } .effort-chip { padding:2px 6px; border:1px solid var(--line); border-radius:5px; color:var(--muted); font:10px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace; }
+  .status-pill { display:inline-flex; align-items:center; min-height:22px; padding:2px 7px; border:1px solid var(--line); border-radius:6px; color:var(--muted); font-size:10px; font-weight:650; white-space:nowrap; }
+  .status-pill.good { border-color:rgba(33,122,74,.38); color:var(--good); background:rgba(33,122,74,.08); }
+  .status-pill.warn { border-color:rgba(154,103,0,.38); color:var(--warn); background:rgba(154,103,0,.08); }
+  .status-pill.bad { border-color:rgba(180,35,24,.34); color:var(--bad); background:rgba(180,35,24,.07); }
+  .candidate-capability { grid-column:1 / -1; display:flex; align-items:center; flex-wrap:wrap; gap:6px; color:var(--muted); font-size:11px; line-height:1.5; }
+  .candidate-connection { min-width:0; overflow-wrap:anywhere; }
+  .candidate-context { min-width:0; overflow-wrap:anywhere; }
+  .candidate-reason { grid-column:1 / -1; color:var(--muted); font-size:11px; line-height:1.5; overflow-wrap:anywhere; }
+  .model-evidence { grid-column:1 / -1; min-width:0; margin-top:10px; padding-top:8px; border-top:1px solid var(--line); font-size:11px; }
+  .model-evidence-row { display:grid; grid-template-columns:68px minmax(0,1fr); gap:8px; margin-top:5px; line-height:1.5; }
+  .model-evidence-label { color:var(--muted); } .model-evidence-value { color:var(--text); overflow-wrap:anywhere; }
+  .model-evidence button { margin-top:7px; padding:0; border:0; background:none; color:var(--accent); cursor:pointer; font:inherit; }
+  .model-evidence-content { display:grid; gap:5px; margin-top:8px; color:var(--muted); line-height:1.55; overflow-wrap:anywhere; }
+  .model-evidence-content a { color:var(--accent); }
+  .public-reference-title { color:var(--text); font-weight:650; }
+  .public-reference-scores { display:grid; margin-top:5px; }
+  .public-reference-score { display:flex; justify-content:space-between; gap:16px; padding:4px 0; border-bottom:1px solid var(--line); }
+  .public-reference-score strong { color:var(--text); white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .public-reference-note { margin-top:8px; }
+  .audit-row { display:grid; grid-template-columns:120px 95px minmax(120px,1fr) minmax(120px,1fr) 85px minmax(120px,1fr); gap:10px; padding:10px 0; border-top:1px solid var(--line); font-size:12px; }
+  .audit-row:first-child { border-top:0; } .audit-label { display:block; margin-bottom:3px; color:var(--muted); font-size:10px; font-weight:650; }
+  .audit-value { min-width:0; overflow-wrap:anywhere; } .audit-reason { color:var(--muted); }
+  .empty.compact { padding:14px 0; }
+  .visually-hidden { position:absolute !important; width:1px !important; height:1px !important; padding:0 !important; margin:-1px !important; overflow:hidden !important; clip:rect(0,0,0,0) !important; white-space:nowrap !important; border:0 !important; }
+  @keyframes model-spin { to { transform:rotate(360deg); } }
+  @media(prefers-reduced-motion:reduce) { .model-refresh.is-loading .refresh-icon { animation:none; } }
+  [hidden] { display:none !important; }
+  @media(max-width:900px) { .tier-grid,.effective-grid { grid-template-columns:1fr; } .audit-row { grid-template-columns:110px 90px minmax(0,1fr) 75px; } .audit-row .audit-result-field,.audit-row .audit-reason-field { grid-column:span 2; } }
+  @media(max-width:750px) { header { grid-template-columns:1fr; } header p { margin:0; } .guard-grid { grid-template-columns:1fr; } .candidate-row { grid-template-columns:minmax(0,1fr) auto; } .candidate-row .effort-chips { grid-column:1 / -1; } .audit-row { grid-template-columns:repeat(2,minmax(0,1fr)); } .audit-row .audit-result-field,.audit-row .audit-reason-field { grid-column:auto; } .audit-reason-field { grid-column:1 / -1 !important; } }
+  @media(max-width:600px) { main { padding:12px 18px calc(34px + var(--dialog-safe-bottom)); } .view-tabs { gap:0; } .view-tab { flex:1; padding:12px 8px; } .layout { grid-template-columns:1fr; gap:20px; } .tuning-grid { grid-template-columns:1fr; gap:0; } .schedule-topbar,.schedule-section-head { flex-direction:column; align-items:stretch; } .schedule-actions .action { flex:1; justify-content:center; } .schedule-panel { padding:15px; } .model-dialog { width:calc(100vw - 16px); max-height:calc(100dvh - 16px - var(--dialog-safe-bottom)); margin-bottom:calc(8px + var(--dialog-safe-bottom)); } .model-dialog-shell { height:calc(100dvh - 16px - var(--dialog-safe-bottom)); padding:16px; } .model-toolbar { grid-template-columns:1fr; gap:7px; } .model-bulk { justify-content:flex-start; margin-left:-8px; } }
+  @media(max-width:420px) { .basic-grid, .checks, .tier-fields { grid-template-columns:1fr; } .actions .action { width:100%; } .model-dialog .actions .action { width:auto; flex:1; } .model-meta { align-items:flex-start; flex-direction:column; gap:7px; padding:7px 0; } .model-owner { display:none; } .model-option { grid-template-columns:18px minmax(0,1fr) auto; } .candidate-row { grid-template-columns:1fr; } .candidate-row .status-pill { justify-self:start; } .effective-details div { grid-template-columns:62px minmax(0,1fr); } }
+  @media(prefers-color-scheme:dark) { :root { --bg:var(--color-background-primary,#1e1e1d); --card:var(--color-background-secondary,#2a2a29); --text:var(--color-text-primary,#f2f2f0); --muted:var(--color-text-secondary,#aaa9a5); --line:var(--color-border-primary,#424240); --accent:#829dff; --good:#76d49d; --warn:#e6bd69; --bad:#ff9b91; } button.action { color:#111; } button.danger { color:#ff9b91; } }
+</style>
+</head>
+<body>
+<main>
+  <header><div class="eyebrow">CODEX · 模型连接</div><h1>管理模型连接</h1><p>集中管理供应商地址、模型和密钥。官方订阅使用你现有的 Codex 登录。</p></header>
+  <nav class="view-tabs" role="tablist" aria-label="模型连接中心页面">
+    <button type="button" id="tab-connections" class="view-tab" role="tab" aria-selected="true" aria-controls="connections-view" tabindex="0">连接管理</button>
+    <button type="button" id="tab-scheduling" class="view-tab" role="tab" aria-selected="false" aria-controls="scheduling-view" tabindex="-1">调度规则</button>
+  </nav>
+  <div id="connections-view" role="tabpanel" aria-labelledby="tab-connections">
+    <div class="layout">
+      <section class="panel">
+        <div class="section-head"><h2>已保存的连接</h2><button type="button" id="new" class="action secondary">新增</button></div>
+        <div id="profiles" class="list"><div class="empty">正在读取连接…</div></div>
+        <div class="actions" id="cleanup-actions" hidden><button type="button" id="retry-cleanup" class="action secondary">重试凭据清理</button><span class="hint cleanup-count" id="cleanup-count" role="status" aria-live="polite"></span></div>
+        <div class="notice" id="route-status">配置保存后，连接状态以实际验证结果为准。</div>
+        <div class="notice" id="global-override" role="status" hidden></div>
+        <div class="actions"><button type="button" id="enable-codex" class="action secondary" hidden>接入 Codex</button></div>
+        <div id="route-message" class="message" role="status" aria-live="polite"></div>
+      </section>
+      <section class="panel">
+        <h2 class="form-title" id="form-title">新增连接</h2><p class="form-note">密钥请直接填在这里，无需发送到聊天。新增模型时会做短测试，可能产生接口用量；编辑已保存的模型不重复测试。</p>
+        <form id="form">
+          <input id="provider-id" type="hidden">
+          <div class="basic-grid">
+            <div><label for="name">名称</label><input id="name" required maxlength="80" placeholder="例如：我的连接" autocomplete="off"></div>
+            <div><label for="protocol">接口类型</label><select id="protocol"><option value="chat_completions">Chat Completions｜通用对话</option><option value="responses">Responses｜OpenAI 响应</option><option value="anthropic_messages">Claude Messages｜Claude 原生</option><option value="gemini_native">Gemini 原生｜多模态</option><option value="system_one">Jev · System One｜Jev 专用</option></select></div>
+            <div><label for="base-url">接口地址</label><input id="base-url" placeholder="https://api.example.com/v1" autocomplete="off"><p class="hint" id="endpoint-hint">填写服务商提供的基础地址。</p></div>
+            <div id="key-group"><label for="key">API 密钥</label><input id="key" type="password" autocomplete="new-password" spellcheck="false" placeholder="请输入密钥"><p class="hint" id="key-hint">密钥保存在本机当前账户。</p></div>
+          </div>
+          <div class="model-header"><label for="model">模型</label><button type="button" id="open-model-dialog" class="action secondary" aria-haspopup="dialog" aria-controls="model-dialog">选择模型<span id="selected-model-count" class="model-count">0</span></button></div><div class="model-entry"><input id="model" maxlength="160" placeholder="手动填写模型 ID" autocomplete="off" aria-describedby="model-hint model-status"></div><ul id="selected-models" class="selected-models" aria-label="已选模型"></ul><div id="jev-current-group" hidden><label for="jev-current-model">当前使用的 Jev 模型</label><select id="jev-current-model" aria-describedby="jev-current-hint" disabled><option value="">先选择或填写模型</option></select><p class="hint" id="jev-current-hint">Jev 一次使用一个模型，选择后点击保存并启用。</p></div><p class="hint" id="model-hint">手动填写后保存即加入；也可打开模型列表多选。</p><p class="hint" id="model-status" role="status" aria-live="polite"></p>
+          <details class="model-tuning" id="model-tuning"><summary>高级选项</summary>
+            <label for="tuning-model">配置模型</label><select id="tuning-model" aria-describedby="tuning-model-hint" disabled><option value="">先选择或填写模型</option></select><p class="hint" id="tuning-model-hint">上下文和思考档位分别应用于所选模型；第三方模型未填写时使用默认值。</p>
+            <div class="tuning-grid">
+              <div><label for="context-window">上下文窗口（tokens）</label><input id="context-window" type="number" min="1" step="1" inputmode="numeric" placeholder="沿用原始默认" aria-describedby="context-window-hint"><p class="hint" id="context-window-hint">留空时不覆盖原有默认值。</p></div>
+              <div><label for="compact-limit">自动压缩阈值（tokens）</label><input id="compact-limit" type="number" min="1" step="1" inputmode="numeric" placeholder="沿用原始默认" aria-describedby="compact-limit-hint"><p class="hint" id="compact-limit-hint">自定义阈值须同时填写上下文窗口；留空时沿用原有默认值。</p></div>
+            </div>
+            <fieldset aria-describedby="reasoning-hint">
+              <legend>可用思考档位</legend>
+              <div class="checks">
+                <label class="check"><input type="checkbox" value="none" data-level>none</label>
+                <label class="check"><input type="checkbox" value="low" data-level>low</label>
+                <label class="check"><input type="checkbox" value="medium" data-level>medium</label>
+                <label class="check"><input type="checkbox" value="high" data-level>high</label>
+                <label class="check"><input type="checkbox" value="xhigh" data-level>xhigh</label>
+                <label class="check"><input type="checkbox" value="max" data-level>max</label>
+                <label class="check"><input type="checkbox" value="ultra" data-level>ultra</label>
+              </div>
+              <p class="hint" id="reasoning-hint">全不勾选时沿用原始默认；服务商必须实际支持所选项。</p>
+            </fieldset>
+            <label for="default-effort">默认思考档位</label><select id="default-effort" aria-describedby="default-effort-hint"><option value="">沿用原始默认</option><option value="none">none</option><option value="low">low</option><option value="medium">medium</option><option value="high">high</option><option value="xhigh">xhigh</option><option value="max">max</option><option value="ultra">ultra</option></select><p class="hint" id="default-effort-hint">只应选择服务商已支持并列入上方的档位。</p>
+          </details>
+          <div class="actions"><button class="action" id="save" type="submit">保存并启用</button><button class="action secondary" id="activate" type="button" hidden>启用此线路</button><button class="action secondary" id="disable" type="button" hidden>停用此连接</button><button class="action danger" id="delete" type="button" hidden>删除此连接</button><button class="action secondary" id="cancel-save-job" type="button" hidden>停止测试</button></div>
+          <div id="message" class="message" role="status" aria-live="polite"></div>
+        </form>
+      </section>
+    </div>
+  </div>
+  <div id="scheduling-view" role="tabpanel" aria-labelledby="tab-scheduling" hidden>
+    <div class="schedule-shell">
+      <div class="schedule-topbar">
+        <div><div class="eyebrow">SUBTASK ROUTING</div><h2>任务调度规则</h2><p>根据任务从已启用模型中选择；本轮指定模型与守卫规则优先。首次工具或图片短测可能产生少量接口用量。</p></div>
+        <div class="schedule-actions"><button type="button" id="refresh-scheduling" class="action secondary"><span class="refresh-glyph" aria-hidden="true">↻</span><span>刷新状态</span></button></div>
+      </div>
+      <div class="guard-grid" aria-label="守卫状态">
+        <article class="guard-card"><div class="guard-label">守卫安装</div><div class="guard-value"><span id="guard-installed-dot" class="status-dot"></span><span id="guard-installed">未知</span></div><p>以连接中心返回的安装状态为准。</p></article>
+        <article class="guard-card"><div class="guard-label">守卫信任</div><div class="guard-value"><span id="guard-trusted-dot" class="status-dot"></span><span id="guard-trusted">未知</span></div><p>未确认信任时不会推断守卫已接管。</p></article>
+        <article class="guard-card"><div class="guard-label">本会话实际覆盖</div><div class="guard-value"><span class="status-dot"></span><span>未知</span></div><p>当前没有收到可证明本会话已被守卫覆盖的数据。</p></article>
+      </div>
+      <div id="scheduling-notice" class="notice" role="status" hidden></div>
+      <section class="schedule-panel" aria-labelledby="effective-title">
+        <div class="schedule-section-head">
+          <div><h3 id="effective-title">当前调度建议</h3><p id="routing-mode">正在读取模式…</p><button type="button" id="switch-manual" class="action secondary" hidden>切换手动调度</button> <button type="button" id="restore-auto" class="action secondary" hidden>恢复自动调度</button><p id="routing-message" class="schedule-message" role="status" aria-live="polite"></p></div>
+          <span class="snapshot-state" id="effective-updated">尚未读取</span>
+        </div>
+        <div id="effective-grid" class="effective-grid" aria-live="polite"><div class="empty compact">正在读取当前生效建议…</div></div>
+
+      </section>
+      <details class="schedule-panel"><summary>设置首选与备选</summary><form id="scheduling-form" aria-labelledby="preferences-title">
+        <section>
+          <div class="schedule-section-head">
+            <div><h3 id="preferences-title">首选与备选偏好</h3><p>自动调度可参考已保存的偏好；从未保存偏好时由调度台决定。手动调度按已保存的首选与备选执行。保存偏好不会切换模式。仅显示当前可选模型。已保存的模型不可用时，请重新选择；原偏好在保存前不会更改。</p></div>
+            <span class="snapshot-state" id="preference-dirty-state" role="status" aria-live="polite">尚未载入</span>
+          </div>
+          <div class="tier-grid">
+            <fieldset class="tier-card"><legend>bounded <span>· 范围明确的子任务</span></legend><p>适合目标清楚、容易核验的执行工作。</p><div class="tier-fields">
+              <label for="pref-bounded-model">首选模型</label><select id="pref-bounded-model" data-tier="bounded" data-role="model"><option value="">正在读取…</option></select>
+              <label for="pref-bounded-effort">首选强度</label><select id="pref-bounded-effort" data-tier="bounded" data-role="effort"><option value="">正在读取…</option></select>
+              <label for="pref-bounded-fallback-model">备选模型</label><select id="pref-bounded-fallback-model" data-tier="bounded" data-role="fallback-model"><option value="">正在读取…</option></select>
+              <label for="pref-bounded-fallback-effort">备选强度</label><select id="pref-bounded-fallback-effort" data-tier="bounded" data-role="fallback-effort"><option value="">正在读取…</option></select>
+            </div></fieldset>
+            <fieldset class="tier-card"><legend>boundary <span>· 边界条件较多的子任务</span></legend><p>适合需要核对约束、接线和失败路径的判断。</p><div class="tier-fields">
+              <label for="pref-boundary-model">首选模型</label><select id="pref-boundary-model" data-tier="boundary" data-role="model"><option value="">正在读取…</option></select>
+              <label for="pref-boundary-effort">首选强度</label><select id="pref-boundary-effort" data-tier="boundary" data-role="effort"><option value="">正在读取…</option></select>
+              <label for="pref-boundary-fallback-model">备选模型</label><select id="pref-boundary-fallback-model" data-tier="boundary" data-role="fallback-model"><option value="">正在读取…</option></select>
+              <label for="pref-boundary-fallback-effort">备选强度</label><select id="pref-boundary-fallback-effort" data-tier="boundary" data-role="fallback-effort"><option value="">正在读取…</option></select>
+            </div></fieldset>
+            <fieldset class="tier-card"><legend>critical <span>· 关键或高风险子任务</span></legend><p>已启用的可选模型均可参与；按首选、备选和实际线路状态选择。</p><div class="tier-fields">
+              <label for="pref-critical-model">首选模型</label><select id="pref-critical-model" data-tier="critical" data-role="model"><option value="">正在读取…</option></select>
+              <label for="pref-critical-effort">首选强度</label><select id="pref-critical-effort" data-tier="critical" data-role="effort"><option value="">正在读取…</option></select>
+              <label for="pref-critical-fallback-model">备选模型</label><select id="pref-critical-fallback-model" data-tier="critical" data-role="fallback-model"><option value="">正在读取…</option></select>
+              <label for="pref-critical-fallback-effort">备选强度</label><select id="pref-critical-fallback-effort" data-tier="critical" data-role="fallback-effort"><option value="">正在读取…</option></select>
+            </div></fieldset>
+          </div>
+          <div class="schedule-form-footer"><div class="actions"><button type="submit" id="save-scheduling" class="action">保存偏好</button></div><p class="schedule-message" id="scheduling-message" role="status" aria-live="polite"></p></div>
+        </section>
+      </form></details>
+      <section class="schedule-panel" aria-labelledby="candidate-title">
+        <div class="schedule-section-head"><div><h3 id="candidate-title">模型资格</h3><p>列出当前已启用连接与模型目录中的候选，并分别说明能力证据、自动关键任务资格和目录配置的上下文窗口。“目录可选”与上下文配置值都不代表调用成功或能力已验证。</p></div></div>
+        <div id="candidate-list" class="candidate-list" aria-live="polite"><div class="empty compact">正在读取模型资格…</div></div>
+      </section>
+      <section class="schedule-panel" aria-labelledby="audit-title">
+        <div class="schedule-section-head"><div><h3 id="audit-title">近期实际审计</h3><p>仅显示找到的模型、推理强度、结果和原因。记录可能不完整；空列表也不表示没有发生派发，缺字段不会被补成成功。</p></div></div>
+        <div id="recent-list" class="audit-list" aria-live="polite"><div class="empty compact">正在读取审计记录…</div></div>
+      </section>
+    </div>
+  </div>
+</main>
+<dialog id="evidence-dialog" class="confirm-dialog evidence-dialog" aria-labelledby="evidence-title"><h2 id="evidence-title">模型详情</h2><p id="evidence-identity" class="evidence-identity"></p><div id="evidence-content" class="model-evidence-content"></div><div class="actions"><button type="button" id="close-evidence" class="action secondary">关闭</button></div></dialog>
+<dialog id="confirm-dialog" class="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-body">
+  <h2 id="confirm-title">删除连接？</h2>
+  <p id="confirm-body"></p>
+  <div class="actions"><button type="button" id="confirm-cancel" class="action secondary">取消</button><button type="button" id="confirm-accept" class="action danger">确认删除</button></div>
+</dialog>
+<dialog id="model-dialog" class="model-dialog" aria-labelledby="model-dialog-title" aria-describedby="model-dialog-description">
+  <div class="model-dialog-shell">
+    <div class="model-dialog-head">
+      <div><h2 id="model-dialog-title">选择模型</h2><p id="model-dialog-description">勾选多个模型后应用；取消会保留表单中原有的选择。</p></div>
+      <button type="button" id="refresh-models" class="model-refresh" aria-label="刷新模型列表"><span class="refresh-icon" aria-hidden="true">↻</span><span>刷新</span></button>
+    </div>
+    <div class="model-toolbar">
+      <div class="model-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+        <input id="model-search" type="search" placeholder="搜索模型…" autocomplete="off" aria-label="搜索模型">
+      </div>
+      <div class="model-bulk"><button type="button" id="select-all-models">全选</button><button type="button" id="select-no-models">全不选</button></div>
+    </div>
+    <div class="model-meta"><span class="count" id="model-selection-count" role="status" aria-live="polite">已选 0 / 共 0</span><label class="only-selected"><input id="only-selected-models" type="checkbox">只看已选</label></div>
+    <div id="model-list" class="model-list" role="group" aria-label="可用模型"></div>
+    <p class="hint model-dialog-status" id="model-dialog-status" role="status" aria-live="polite"></p>
+    <div class="actions"><button type="button" id="cancel-model-selection" class="action secondary">取消</button><button type="button" id="apply-model-selection" class="action">应用</button></div>
+  </div>
+</dialog>
+<script>
+(() => {
+  const el = id => document.getElementById(id);
+  const levelInputs = [...document.querySelectorAll('[data-level]')];
+  const pending = new Map();
+  let next = 0;
+  let profiles = [];
+  let activeModels = new Set();
+  let activeJev = null;
+  let pendingCredentialCleanup = 0;
+  let selectedModels = new Set();
+  let modelCatalog = [];
+  let modelDraft = new Set();
+  let modelCatalogLoading = false;
+  let modelDialogReturnFocus = null;
+  let modelCatalogMeta = { source: '', truncated: false };
+  let tuningModelId = '';
+  let tuningDrafts = new Map();
+  let tuningDirty = new Set();
+  let jevModelId = '';
+  let activeSaveJob = '';
+  let saveCancelRequested = false;
+  let busyControls = null;
+  let schedulingOverview = null;
+  let schedulingLoaded = false;
+  let schedulingPreferencesLoaded = false;
+  let schedulingDirty = false;
+  let schedulingSavedPreferences = null;
+  const schedulingEditedFields = new Set();
+  let schedulingSaving = false;
+  let schedulingRequestSerial = 0;
+  let schedulingFocusRefreshAt = 0;
+  let publicReferenceTimer = null;
+  let publicReferenceRefreshes = 0;
+
+
+  function safeMessage(value, fallback) {
+    const text = typeof value === 'string' && value ? value : fallback;
+    const key = el('key').value;
+    return key ? text.split(key).join('[密钥已隐藏]') : text;
+  }
+
+  function normalizeModelId(value) {
+    return typeof value === 'string' ? value.trim() : '';
+  }
+
+  function uniqueModelIds(values) {
+    return [...new Set(values.map(normalizeModelId).filter(Boolean))];
+  }
+
+  function profileModels(profile) {
+    const stored = Array.isArray(profile?.models)
+      ? uniqueModelIds(profile.models)
+      : [];
+    if (stored.length) return stored;
+    const legacy = normalizeModelId(profile?.model);
+    return legacy ? [legacy] : [];
+  }
+
+  function currentProfile() {
+    const id = el('provider-id').value;
+    return id ? profiles.find(item => item.id === id) : null;
+  }
+
+  function primaryModelId() {
+    return selectedModels.values().next().value || el('model').value.trim();
+  }
+
+  function request(method, params, timeoutMs = 15000) {
+    return new Promise((resolve, reject) => {
+      const id = ++next;
+      const timeout = setTimeout(() => {
+        pending.delete(id);
+        reject(new Error('连接超时，请重试。'));
+      }, timeoutMs);
+      pending.set(id, { resolve, reject, timeout });
+      window.parent.postMessage({ jsonrpc: '2.0', id, method, params }, '*');
+    });
+  }
+
+  function notify(method, params = {}) {
+    window.parent.postMessage({ jsonrpc: '2.0', method, params }, '*');
+  }
+
+  function applyHostContext(context) {
+    const bottom = context?.safeAreaInsets?.bottom;
+    if (typeof bottom === 'number' && Number.isFinite(bottom) && bottom >= 0 && bottom <= 2000) {
+      document.documentElement.style.setProperty('--host-safe-bottom', `${bottom}px`);
+    }
+  }
+
+  window.addEventListener('message', event => {
+    if (event.source !== window.parent || !event.data || event.data.jsonrpc !== '2.0') return;
+    if (event.data.method === 'ui/notifications/host-context-changed') {
+      applyHostContext(event.data.params);
+      return;
+    }
+    const value = pending.get(event.data.id);
+    if (!value) return;
+    clearTimeout(value.timeout);
+    pending.delete(event.data.id);
+    if (event.data.error) {
+      value.reject(new Error(safeMessage(event.data.error.message, '操作未完成，请重试。')));
+    } else {
+      value.resolve(event.data.result);
+    }
+  });
+
+  function payload(result) {
+    const item = (result?.content || []).find(entry => entry.type === 'text');
+    if (result?.isError) throw new Error(safeMessage(item?.text, '操作未完成，请重试。'));
+    if (result?.structuredContent) return result.structuredContent;
+    return item ? JSON.parse(item.text) : {};
+  }
+
+  async function call(name, args = {}, timeoutMs = 15000) {
+    return payload(await request('tools/call', { name, arguments: args }, timeoutMs));
+  }
+
+  const scheduleTiers = [
+    { key: 'bounded', label: 'bounded' },
+    { key: 'boundary', label: 'boundary' },
+    { key: 'critical', label: 'critical' }
+  ];
+
+  const scheduleStateMeta = {
+    available: { label: '目录可选', tone: 'good' },
+    disabled: { label: '连接已停用', tone: 'warn' },
+    effort_unknown: { label: '思考强度未确认', tone: 'warn' },
+    not_in_catalog: { label: '不在模型目录', tone: 'warn' },
+    outside_policy: { label: '超出策略', tone: 'bad' }
+  };
+
+  const scheduleTaskNames = {
+    bounded: '有界任务',
+    boundary: '边界任务',
+    critical: '关键任务'
+  };
+
+  const scheduleSkipReasons = {
+    MODEL_DISABLED: '连接已停用',
+    MODEL_UNAVAILABLE: '模型不在当前目录',
+    MODEL_EFFORT_UNSUPPORTED: '模型不支持该推理强度',
+    MODEL_NOT_ALLOWED: '模型超出当前策略',
+    MODEL_EFFORT_NOT_ALLOWED: '推理强度超出当前策略',
+    CAPABILITY_UNCONFIRMED: '当前模型暂不可选',
+    PURPOSE_OR_EFFORT_UNAVAILABLE: '该用途的测试或思考强度暂不可用',
+    HUB_PARENT_ROUTE_UNKNOWN: '无法确认当前父会话能否到达该线路',
+    HUB_BINDING_CHANGED: '线路绑定已变化，本次候选已跳过',
+    HUB_BINDING_UNAVAILABLE: '线路绑定当前不可用',
+    HUB_TASK_DELIVERY_UNSUPPORTED: '该线路不支持当前任务正文的传递方式',
+    HUB_PRECHECK_TIMEOUT: '本次线路核对已超时，暂时跳过',
+    EXPLICIT_MODEL_UNAVAILABLE: '本轮明确指定的模型或强度不可用',
+    MODEL_CATALOG_UNAVAILABLE: '模型目录不可用',
+    MODEL_POLICY_INVALID: '模型策略无效'
+  };
+
+  function scheduleText(value, fallback = '未报告') {
+    return typeof value === 'string' && value.trim() ? value : fallback;
+  }
+
+  function scheduleCandidate(model) {
+    const id = normalizeModelId(model);
+    return schedulingOverview?.candidates?.find(item => item.model === id) || null;
+  }
+
+  function scheduleModelName(model, fallback = '未报告') {
+    const candidate = scheduleCandidate(model);
+    return candidate?.state === 'available'
+      ? scheduleText(candidate.display_name, candidate.model)
+      : fallback;
+  }
+
+  function setScheduleModelTitle(select) {
+    const candidate = scheduleCandidate(select.value);
+    select.title = candidate?.connection ? `供应商：${candidate.connection}` : '';
+  }
+
+  function scheduleCapability(candidate) {
+    const eligible = candidate?.critical_eligible === true;
+    return {
+      eligible,
+      criticalLabel: eligible ? '关键任务：可参与' : '关键任务：暂不可选'
+    };
+  }
+
+  function scheduleEvidence(candidate) {
+    const rows = Array.isArray(candidate?.evidence) ? candidate.evidence : [];
+    if (!rows.length) return [];
+    const names = {connection:'连接短测',tool:'工具调用',image:'图片识别',video:'视频画面',speech:'语音转写',audio:'非语音声音'};
+    const states = {passed:'通过',failed:'样例未通过',error:'请求出错',stale:'需重新验证'};
+    const errors = {timeout:'超时',authentication:'认证或权限受限',rate_limit:'额度或频率受限',server:'服务商错误',transport:'连接失败',format:'回复格式异常'};
+    return rows.filter(row => names[row?.purpose] && states[row?.status]).map(row => {
+      const channel = row.channel === 'gemini_media' ? '媒体工具' : row.channel === 'subagent_gateway' ? '子代理线路' : '';
+      const date = typeof row.tested_at === 'string' && !Number.isNaN(Date.parse(row.tested_at))
+        ? new Date(row.tested_at).toLocaleDateString('zh-CN') : '';
+      const state = states[row.status] + (row.status === 'error' && errors[row.error_code] ? `（${errors[row.error_code]}）` : '');
+      return [names[row.purpose], channel, row.effort, state, date].filter(Boolean).join(' · ');
+    });
+  }
+
+  function appendPublicReference(parent, candidate) {
+    const box = document.createElement('div');
+    box.className = 'public-reference';
+    const reference = candidate?.public_reference;
+    const messages = {pending:'正在查找公开评测…',missing:'暂未匹配到公开评测。',
+      ambiguous:'发现多个同名模型，暂不自动匹配。',unavailable:'公开评测暂时无法读取。'};
+    if (!reference || reference.status !== 'available') {
+      box.textContent = messages[reference?.status] || '暂未匹配到公开评测。';
+      parent.append(box);
+      return;
+    }
+    const names = {'harborframework/terminal-bench':'Terminal-Bench',
+      'datacurve/deep-swe':'DeepSWE','cais/hle':'HLE'};
+    const priority = {'datacurve/deep-swe':0,'swe-bench pro':0,'harborframework/terminal-bench':1,'terminal-bench 2.1':1};
+    const rows = (Array.isArray(reference.results) ? reference.results : [])
+      .filter(row => row && typeof row.benchmark === 'string' &&
+        typeof row.score === 'number' && Number.isFinite(row.score))
+      .sort((a,b)=>(priority[a.benchmark.toLowerCase()] ?? 10)-(priority[b.benchmark.toLowerCase()] ?? 10));
+    const entries = rows.map(row => {
+      const name = names[row.benchmark.toLowerCase()] || row.benchmark.split('/').at(-1).slice(0,48);
+      return {name, value:`${row.score}${row.unit === '%' ? '%' : ''}`};
+    });
+    const unverified = rows.some(row => row.verified !== true);
+    const qualifier = reference.source_kind === 'report' ? '公开报告' : unverified ? '未核验' : '公开数据';
+    const checked = typeof reference.checked_at === 'number' && Number.isFinite(reference.checked_at)
+      ? `，查询于 ${new Date(reference.checked_at * 1000).toLocaleDateString('zh-CN')}` : '';
+    if (!entries.length) {
+      box.textContent = '暂未匹配到公开评测。';
+      parent.append(box);
+      return;
+    }
+    const title = document.createElement('div');
+    title.className = 'public-reference-title';
+    title.textContent = `公开评测 · ${qualifier}`;
+    const scores = document.createElement('div');
+    scores.className = 'public-reference-scores';
+    for (const entry of entries) {
+      const row = document.createElement('div'); row.className = 'public-reference-score';
+      const name = document.createElement('span'); name.textContent = entry.name;
+      const value = document.createElement('strong'); value.textContent = entry.value;
+      row.append(name, value); scores.append(row);
+    }
+    const note = document.createElement('div');
+    note.className = 'public-reference-note';
+    note.textContent = `按名称匹配，非本线路实测${checked}。`;
+    box.append(title, scores, note);
+    try {
+      const url = new URL(reference.source_url);
+      const allowed = url.hostname === 'huggingface.co' || reference.source_kind === 'report';
+      if (url.protocol === 'https:' && allowed && !url.username && !url.password) {
+        const link = document.createElement('a');
+        link.href = url.href;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = '查看来源';
+        note.append(' ', link);
+      }
+    } catch { /* Invalid public metadata is never used as a link. */ }
+    parent.append(box);
+  }
+
+  function appendEvidenceSummary(parent, candidate) {
+    const box = document.createElement('div');
+    box.className = 'model-evidence';
+    const rows = Array.isArray(candidate?.evidence) ? candidate.evidence : [];
+    const names = {connection:'连接',tool:'工具',image:'图片',video:'视频',speech:'语音',audio:'声音'};
+    const states = {passed:'通过',failed:'未通过',error:'出错',stale:'待复核'};
+    const visibleRows = rows.filter(row => names[row?.purpose] && states[row?.status]);
+    const summaryRows = [...visibleRows].sort((a,b) =>
+      Number(a.status === 'stale')-Number(b.status === 'stale') ||
+      Number(!['error','failed'].includes(a.status))-Number(!['error','failed'].includes(b.status)));
+    const summary = summaryRows.slice(0,2).map(row =>
+      [names[row.purpose], row.effort, states[row.status]].filter(Boolean).join(' '));
+    if (visibleRows.length > 2) summary.push(`等 ${visibleRows.length} 项`);
+    const reference = candidate?.public_reference;
+    const publicStatus = reference?.status === 'available' && Array.isArray(reference.results) && reference.results.length
+      ? reference.source_kind === 'report' ? '有参考（公开报告）'
+        : reference.results.some(row => row?.verified !== true) ? '有参考（未核验）' : '有参考'
+      : ({pending:'查询中',missing:'未匹配到',ambiguous:'同名待区分',unavailable:'暂时不可用'}[reference?.status] || '未匹配到');
+    for (const [label, value] of [['测试', summary.join(' · ') || '暂无记录'], ['公开评测', publicStatus]]) {
+      const row = document.createElement('div'); row.className = 'model-evidence-row';
+      const name = document.createElement('span'); name.className = 'model-evidence-label'; name.textContent = label;
+      const content = document.createElement('span'); content.className = 'model-evidence-value'; content.textContent = value;
+      row.append(name, content); box.append(row);
+    }
+    const toggle = document.createElement('button');
+    toggle.type = 'button'; toggle.textContent = '查看详情';
+    toggle.setAttribute('aria-haspopup', 'dialog');
+    toggle.addEventListener('click', () => {
+      const dialog = el('evidence-dialog');
+      el('evidence-identity').textContent = [scheduleText(candidate?.display_name, candidate?.model), candidate?.connection].filter(Boolean).join(' · ');
+      const content = el('evidence-content');
+      content.replaceChildren();
+      const section=document.createElement('section');section.className='evidence-section';
+      const title=document.createElement('h3');title.textContent='测试记录';section.append(title);
+      const evidenceRows = scheduleEvidence(candidate);
+      if (!evidenceRows.length) evidenceRows.push('暂无测试记录。');
+      for (const text of evidenceRows) {
+        const line = document.createElement('div'); line.className='evidence-entry';line.textContent = text; section.append(line);
+      }
+      content.append(section);
+      const publicSection=document.createElement('section');publicSection.className='evidence-section';
+      appendPublicReference(publicSection, candidate);content.append(publicSection);
+      dialog.showModal();
+      el('close-evidence').focus();
+    });
+    box.append(toggle); parent.append(box);
+  }
+
+  function scheduleContextWindow(candidate) {
+    const value = candidate?.context_window;
+    return typeof value === 'number' && Number.isFinite(value) && value > 0
+      ? `${value.toLocaleString('zh-CN')}（目录配置值，非实测）`
+      : '未提供';
+  }
+
+  function normalizeSchedulePreferences(source) {
+    const value = source && typeof source === 'object' ? source : {};
+    const result = {};
+    for (const { key } of scheduleTiers) {
+      const tier = value[key] && typeof value[key] === 'object' ? value[key] : {};
+      result[key] = {
+        model: normalizeModelId(tier.model),
+        effort: typeof tier.effort === 'string' ? tier.effort : '',
+        fallback_model: normalizeModelId(tier.fallback_model),
+        fallback_effort: typeof tier.fallback_effort === 'string' ? tier.fallback_effort : ''
+      };
+    }
+    return result;
+  }
+
+  function scheduleControl(tier, role) {
+    return el(`pref-${tier}-${role}`);
+  }
+
+  function populateScheduleModelSelect(select, currentModel, isFallback) {
+    const current = normalizeModelId(currentModel);
+    const choices = (schedulingOverview?.candidates || [])
+      .filter(item => item && item.model && item.state === 'available');
+    const options = [];
+    if (!choices.some(item => item.model === current)) {
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = !choices.length ? '当前没有可用模型' : isFallback ? '请选择备选模型' : '请选择模型';
+      placeholder.disabled = true;
+      options.push(placeholder);
+    }
+    for (const candidate of choices) {
+      const option = document.createElement('option');
+      option.value = candidate.model;
+      option.textContent = scheduleText(candidate.display_name, candidate.model);
+      if (candidate.connection) option.title = `供应商：${candidate.connection}`;
+      options.push(option);
+    }
+    select.replaceChildren(...options);
+    select.value = choices.some(item => item.model === current) ? current : '';
+    setScheduleModelTitle(select);
+  }
+
+  function populateScheduleEffortSelect(select, model, currentEffort, isFallback) {
+    const current = typeof currentEffort === 'string' ? currentEffort : '';
+    const candidate = scheduleCandidate(model);
+    const efforts = Array.isArray(candidate?.efforts)
+      ? [...new Set(candidate.efforts.filter(item => typeof item === 'string' && item))]
+      : [];
+    const values = [...efforts];
+    if (current && !values.includes(current)) values.push(current);
+    const options = [];
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = !model
+      ? '先选择模型'
+      : isFallback
+        ? '请选择备选强度'
+        : '请选择强度';
+    placeholder.disabled = true;
+    options.push(placeholder);
+    for (const effort of values) {
+      const option = document.createElement('option');
+      option.value = effort;
+      const unknown = !efforts.includes(effort);
+      const unavailable = !candidate || candidate.state !== 'available';
+      option.textContent = unknown
+        ? `${effort} · 当前偏好，目录未列出`
+        : unavailable
+          ? `${effort} · 当前偏好，路线未确认`
+          : effort;
+      option.disabled = unavailable && !unknown;
+      options.push(option);
+    }
+    select.replaceChildren(...options);
+    select.value = current;
+  }
+
+  function renderSchedulePreferences(source, markClean = false) {
+    const preferences = normalizeSchedulePreferences(source);
+    let unavailable = false;
+    for (const { key } of scheduleTiers) {
+      const pref = preferences[key];
+      const model = scheduleControl(key, 'model');
+      const fallback = scheduleControl(key, 'fallback-model');
+      populateScheduleModelSelect(model, pref.model, false);
+      populateScheduleEffortSelect(scheduleControl(key, 'effort'), model.value, model.value ? pref.effort : '', false);
+      populateScheduleModelSelect(fallback, pref.fallback_model, true);
+      populateScheduleEffortSelect(scheduleControl(key, 'fallback-effort'), fallback.value, fallback.value ? pref.fallback_effort : '', true);
+      unavailable ||= !!(pref.model && !model.value || pref.fallback_model && !fallback.value);
+    }
+    schedulingPreferencesLoaded = true;
+    if (markClean) {
+      schedulingSavedPreferences = preferences;
+      schedulingEditedFields.clear();
+      setScheduleDirty(false);
+      if (unavailable) el('preference-dirty-state').textContent = '部分已保存的模型不可用，请重新选择';
+    }
+  }
+
+  function readSchedulePreferences({ preserveUnavailable = false } = {}) {
+    const result = {};
+    for (const { key } of scheduleTiers) {
+      result[key] = {
+        model: scheduleControl(key, 'model').value,
+        effort: scheduleControl(key, 'effort').value,
+        fallback_model: scheduleControl(key, 'fallback-model').value,
+        fallback_effort: scheduleControl(key, 'fallback-effort').value
+      };
+      if (preserveUnavailable && schedulingSavedPreferences?.[key]) {
+        const saved = schedulingSavedPreferences[key];
+        for (const [modelField, effortField] of [['model', 'effort'], ['fallback_model', 'fallback_effort']]) {
+          if (!result[key][modelField] && saved[modelField] &&
+              scheduleCandidate(saved[modelField])?.state !== 'available' &&
+              !schedulingEditedFields.has(`${key}:${modelField}`)) {
+            result[key][modelField] = saved[modelField];
+            if (!schedulingEditedFields.has(`${key}:${effortField}`)) result[key][effortField] = saved[effortField];
+          }
+        }
+      }
+    }
+    return result;
+  }
+
+  function setScheduleMessage(message, tone = '') {
+    const box = el('scheduling-message');
+    box.textContent = message || '';
+    box.classList.toggle('is-error', tone === 'error');
+    box.classList.toggle('is-success', tone === 'success');
+    box.classList.toggle('is-warning', tone === 'warning');
+  }
+
+  function setScheduleDirty(dirty) {
+    schedulingDirty = dirty;
+    el('preference-dirty-state').textContent = dirty ? '有未保存修改' : '与当前已保存偏好一致';
+  }
+
+  function validateSchedulePreferences(preferences) {
+    for (const { key, label } of scheduleTiers) {
+      const pref = preferences[key];
+      if (!pref.model) return `${label}：请选择首选模型。`;
+      if (!pref.effort) return `${label}：请选择首选推理强度。`;
+      if (!pref.fallback_model) return `${label}：请选择备选模型。`;
+      if (!pref.fallback_effort) return `${label}：请选择备选推理强度。`;
+    }
+    return '';
+  }
+
+  function setSymbolState(id, value, trueText, falseText) {
+    const node = el(id);
+    const dot = el(`${id}-dot`);
+    if (value === true) {
+      node.textContent = trueText;
+      if (dot) dot.className = 'status-dot good';
+    } else if (value === false) {
+      node.textContent = falseText;
+      if (dot) dot.className = 'status-dot bad';
+    } else {
+      node.textContent = '未知';
+      if (dot) dot.className = 'status-dot';
+    }
+  }
+
+  function renderScheduleGuard(guard) {
+    const value = guard && typeof guard === 'object' ? guard : {};
+    setSymbolState('guard-installed', value.installed, '已安装', '未安装');
+    setSymbolState('guard-trusted', value.trusted, '已信任', '未信任');
+  }
+
+  function describeSkipped(item) {
+    if (typeof item === 'string') return item;
+    if (!item || typeof item !== 'object') return '未提供跳过原因';
+    const route = [scheduleModelName(item.model, ''), item.effort].filter(value => typeof value === 'string' && value).join(' / ');
+    const code = typeof item.code === 'string' ? item.code : '';
+    const reason = scheduleText(item.reason || item.message || item.error,
+      scheduleSkipReasons[code] || (code ? `未提供文字原因（${code}）` : '未提供原因'));
+    const source = typeof item.source === 'string' && item.source ? `（${scheduleSourceLabel(item.source)}）` : '';
+    return `${route || '偏好候选'}${source}：${reason}`;
+  }
+
+  function scheduleSourceLabel(source) {
+    return {
+      preferred: '当前首选',
+      fallback: '当前备选',
+      automatic: '自动选择',
+      explicit: '本轮明确指定'
+    }[source] || scheduleText(source, '未报告');
+  }
+
+  function renderScheduleEffective(effective) {
+    if (el('evidence-dialog').open) el('evidence-dialog').close();
+    const box = el('effective-grid');
+    const value = effective && typeof effective === 'object' ? effective : {};
+    box.replaceChildren();
+    for (const { key } of scheduleTiers) {
+      const item = value[key] && typeof value[key] === 'object' ? value[key] : {};
+      const card = document.createElement('article');
+      card.className = 'effective-card';
+      const head = document.createElement('div');
+      head.className = 'effective-head';
+      const title = document.createElement('strong');
+      title.textContent = scheduleTaskNames[key];
+      const status = document.createElement('span');
+      const availableModel = scheduleModelName(item.model, '');
+      const tone = item.ok === true && availableModel ? 'good' : item.ok === false || !availableModel ? 'bad' : '';
+      status.className = `status-pill ${tone}`.trim();
+      status.textContent = item.ok === true && availableModel ? '有建议' : item.ok === false || !availableModel ? '无可用建议' : '状态未知';
+      head.append(title, status);
+      const model = document.createElement('div');
+      model.className = 'effective-model';
+      model.textContent = availableModel || '未选出模型';
+      const details = document.createElement('dl');
+      details.className = 'effective-details';
+      const capability = availableModel ? scheduleCapability(scheduleCandidate(item.model)) : null;
+      const detailRows = [
+        ['连接', scheduleText(item.connection, '未报告')],
+        ['强度', scheduleText(item.effort)],
+        ['来源', scheduleSourceLabel(item.source)]
+      ];
+      if (capability) detailRows.push(
+        ['关键任务', capability.eligible ? '可参与' : '暂不可选']
+      );
+      for (const [name, fieldValue] of detailRows) {
+        const row = document.createElement('div');
+        const term = document.createElement('dt');
+        const description = document.createElement('dd');
+        term.textContent = name;
+        description.textContent = fieldValue;
+        row.append(term, description);
+        details.append(row);
+      }
+      card.append(head, model, details);
+      if (availableModel) {
+        appendEvidenceSummary(card, scheduleCandidate(item.model));
+      }
+      const reason = [...(Array.isArray(item.selection_reasons) ? item.selection_reasons : []), item.reason, item.fallback_reason, item.message, item.error]
+        .filter(value => typeof value === 'string' && value.trim());
+      if (reason.length) {
+        const note = document.createElement('div');
+        note.className = 'effective-reason';
+        note.textContent = [...new Set(reason)].join(' ');
+        card.append(note);
+      }
+      const skipped = Array.isArray(item.skipped)
+        ? item.skipped
+        : item.skipped && typeof item.skipped === 'object'
+          ? [item.skipped]
+          : typeof item.skipped === 'string' && item.skipped
+            ? [item.skipped]
+            : [];
+      const visibleSkipped = skipped.filter(entry => entry && typeof entry === 'object' && scheduleCandidate(entry.model)?.state === 'available');
+      if (visibleSkipped.length) {
+        const skippedBox = document.createElement('div');
+        skippedBox.className = 'skipped-box';
+        const skippedTitle = document.createElement('strong');
+        skippedTitle.textContent = '已跳过的首选、备选或自动候选';
+        const list = document.createElement('ul');
+        for (const skippedItem of visibleSkipped) {
+          const row = document.createElement('li');
+          row.textContent = describeSkipped(skippedItem);
+          list.append(row);
+        }
+        skippedBox.append(skippedTitle, list);
+        card.append(skippedBox);
+      }
+      box.append(card);
+    }
+  }
+
+  function renderScheduleCandidates(candidates) {
+    const box = el('candidate-list');
+    const items = Array.isArray(candidates) ? candidates.filter(item => item?.model && item.state === 'available') : [];
+    box.replaceChildren();
+    if (!items.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty compact';
+      empty.textContent = '当前没有可用的模型候选。';
+      box.append(empty);
+      return;
+    }
+    for (const candidate of items) {
+      if (!candidate || !candidate.model) continue;
+      const meta = scheduleStateMeta[candidate.state] || { label: '状态未知', tone: '' };
+      const row = document.createElement('div');
+      row.className = 'candidate-row';
+      const model = document.createElement('div');
+      model.className = 'model-code';
+      model.textContent = scheduleModelName(candidate.model);
+      const chips = document.createElement('div');
+      chips.className = 'effort-chips';
+      const efforts = Array.isArray(candidate.efforts)
+        ? candidate.efforts.filter(item => typeof item === 'string' && item)
+        : [];
+      if (efforts.length) {
+        for (const effort of efforts) {
+          const chip = document.createElement('span');
+          chip.className = 'effort-chip';
+          chip.textContent = effort;
+          chips.append(chip);
+        }
+      } else {
+        const chip = document.createElement('span');
+        chip.className = 'effort-chip';
+        chip.textContent = '强度未报告';
+        chips.append(chip);
+      }
+      const status = document.createElement('span');
+      status.className = `status-pill ${meta.tone}`.trim();
+      status.textContent = meta.label;
+      const capability = scheduleCapability(candidate);
+      const capabilityLine = document.createElement('div');
+      capabilityLine.className = 'candidate-capability';
+      const criticalBadge = document.createElement('span');
+      criticalBadge.className = `status-pill ${capability.eligible ? '' : 'warn'}`.trim();
+      criticalBadge.textContent = capability.criticalLabel;
+      const connection = document.createElement('span');
+      connection.className = 'candidate-connection';
+      connection.textContent = `启用线路：${scheduleText(candidate.connection, '未报告')}`;
+      const context = document.createElement('span');
+      context.className = 'candidate-context';
+      context.textContent = `上下文配置：${scheduleContextWindow(candidate)}`;
+      capabilityLine.append(criticalBadge, connection, context);
+      row.append(model, chips, status, capabilityLine);
+      appendEvidenceSummary(row, candidate);
+      box.append(row);
+    }
+    if (!box.childElementCount) {
+      const empty = document.createElement('div');
+      empty.className = 'empty compact';
+      empty.textContent = '模型候选缺少可显示的名称。';
+      box.append(empty);
+    }
+  }
+
+  function scheduleResultTone(result) {
+    const value = String(result || '').toLowerCase();
+    if (/success|succeed|pass|ok|allow|completed|通过|成功|放行/.test(value)) return 'good';
+    if (/fail|error|reject|deny|blocked|失败|拒绝|拦截/.test(value)) return 'bad';
+    return '';
+  }
+
+  function auditRoute(item, kind) {
+    const route = item?.[kind];
+    if (!route || typeof route !== 'object') return '未知';
+    const model = typeof route.model === 'string' && route.model ? scheduleModelName(route.model, '当前不可用') : '';
+    const effort = typeof route.effort === 'string' && route.effort ? route.effort : '';
+    return model && effort ? `${model} / ${effort}` : '未知';
+  }
+
+  function appendAuditField(row, label, value, className = '') {
+    const field = document.createElement('div');
+    field.className = `audit-field ${className}`.trim();
+    const name = document.createElement('span');
+    name.className = 'audit-label';
+    name.textContent = label;
+    const content = document.createElement('span');
+    content.className = 'audit-value';
+    if (value instanceof Node) content.append(value);
+    else content.textContent = value;
+    field.append(name, content);
+    row.append(field);
+  }
+
+  function renderScheduleRecent(recent) {
+    const box = el('recent-list');
+    const items = Array.isArray(recent) ? recent : [];
+    box.replaceChildren();
+    if (!items.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty compact';
+      empty.textContent = '没有找到可读取的近期审计记录。这不代表没有发生调度。';
+      box.append(empty);
+      return;
+    }
+    for (const itemValue of items) {
+      const item = itemValue && typeof itemValue === 'object' ? itemValue : {};
+      const row = document.createElement('div');
+      row.className = 'audit-row';
+      appendAuditField(row, '时间', scheduleText(item.time));
+      appendAuditField(row, '事件', scheduleText(item.event));
+      appendAuditField(row, '请求模型 / 强度', auditRoute(item, 'requested'));
+      appendAuditField(row, '实际模型 / 强度', auditRoute(item, 'actual'));
+      const result = document.createElement('span');
+      result.className = `status-pill ${scheduleResultTone(item.result)}`.trim();
+      result.textContent = scheduleText(item.result, '未知');
+      appendAuditField(row, '结果', result, 'audit-result-field');
+      appendAuditField(row, '原因', scheduleText(item.reason, '未提供'), 'audit-reason-field audit-reason');
+      box.append(row);
+    }
+  }
+
+  function applySchedulingOverview(data, applyPreferences) {
+    schedulingOverview = {
+      ...data,
+      candidates: Array.isArray(data.candidates) ? data.candidates : [],
+      recent: Array.isArray(data.recent) ? data.recent : []
+    };
+    schedulingLoaded = true;
+    el('routing-mode').textContent = data.routing_mode === 'manual' ? '手动调度' : data.routing_mode === 'auto' ? '自动调度' : '调度模式未确认';
+    el('restore-auto').hidden = data.routing_mode !== 'manual';
+    el('switch-manual').hidden = data.routing_mode !== 'auto';
+    renderScheduleGuard(data.guard);
+    renderScheduleEffective(data.effective);
+    renderScheduleCandidates(schedulingOverview.candidates);
+    renderScheduleRecent(schedulingOverview.recent);
+    const notice = el('scheduling-notice');
+    notice.hidden = typeof data.notice !== 'string' || !data.notice.trim();
+    notice.textContent = notice.hidden ? '' : data.notice;
+    if (applyPreferences || schedulingPreferencesLoaded && !schedulingDirty) {
+      renderSchedulePreferences(data.preferences, true);
+    } else if (schedulingPreferencesLoaded) {
+      renderSchedulePreferences(readSchedulePreferences(), false);
+    }
+    el('effective-updated').textContent = `快照 ${new Date().toLocaleString('zh-CN', { hour12: false })}`;
+  }
+
+  function schedulePublicReferenceRefresh(pending) {
+    clearTimeout(publicReferenceTimer);
+    if (!pending || el('scheduling-view').hidden || publicReferenceRefreshes >= 10) return;
+    publicReferenceTimer = setTimeout(() => {
+      if (el('scheduling-view').hidden || schedulingSaving || document.visibilityState !== 'visible') return;
+      publicReferenceRefreshes += 1;
+      void refreshPublicReferences();
+    }, 3000);
+  }
+
+  async function refreshPublicReferences() {
+    const serial = schedulingRequestSerial;
+    try {
+      const result = await call('get_public_model_references', {}, 10000);
+      if (serial !== schedulingRequestSerial || el('scheduling-view').hidden || !result?.ok) return;
+      const references = result.references && typeof result.references === 'object' ? result.references : {};
+      for (const candidate of schedulingOverview?.candidates || []) {
+        if (Object.hasOwn(references, candidate.model)) candidate.public_reference = references[candidate.model];
+      }
+      renderScheduleEffective(schedulingOverview.effective);
+      renderScheduleCandidates(schedulingOverview.candidates);
+      if (result.pending === true) schedulePublicReferenceRefresh(true);
+      else await refreshSchedulingState({ quiet: true, skipPublicRefresh: true });
+    } catch { /* Public data never blocks local scheduling. */ }
+  }
+
+  async function refreshSchedulingState({ applyPreferences = false, quiet = false, skipPublicRefresh = false } = {}) {
+    const serial = ++schedulingRequestSerial;
+    const button = el('refresh-scheduling');
+    button.disabled = true;
+    button.classList.add('is-loading');
+    if (!quiet) {
+      setScheduleMessage('正在读取当前调度快照…');
+      if (!schedulingLoaded) el('effective-updated').textContent = '正在读取';
+    }
+    try {
+      const result = await call('get_scheduling_overview', {}, 30000);
+      if (serial !== schedulingRequestSerial) return { ok: false, error: '刷新已被新的请求替代。' };
+      if (!result || result.ok !== true) throw new Error(result?.error || '调度概览未返回成功状态。');
+      applySchedulingOverview(result, applyPreferences && !schedulingDirty);
+      if (!skipPublicRefresh) schedulePublicReferenceRefresh(result.public_reference_pending === true);
+      if (!quiet) setScheduleMessage('当前建议已刷新。', 'success');
+      return { ok: true };
+    } catch (error) {
+      if (serial !== schedulingRequestSerial) return { ok: false, error: '刷新已被新的请求替代。' };
+      const message = safeMessage(error.message, '无法读取调度概览。');
+      setScheduleMessage(`未能刷新调度概览：${message}`, 'error');
+      el('effective-updated').textContent = '快照读取失败';
+      if (!schedulingLoaded) {
+        el('effective-grid').textContent = '暂时无法读取当前生效建议。';
+        el('candidate-list').replaceChildren();
+        const candidatesError = document.createElement('div');
+        candidatesError.className = 'empty compact';
+        candidatesError.textContent = '暂时无法读取模型资格。';
+        el('candidate-list').append(candidatesError);
+        el('recent-list').replaceChildren();
+        const recentError = document.createElement('div');
+        recentError.className = 'empty compact';
+        recentError.textContent = '暂时无法读取近期审计。';
+        el('recent-list').append(recentError);
+      }
+      return { ok: false, error: message };
+    } finally {
+      if (serial === schedulingRequestSerial) {
+        button.disabled = false;
+        button.classList.remove('is-loading');
+      }
+    }
+  }
+
+  function setSchedulingSaving(saving) {
+    schedulingSaving = saving;
+    const form = el('scheduling-form');
+    form.setAttribute('aria-busy', saving ? 'true' : 'false');
+    for (const select of form.querySelectorAll('select')) select.disabled = saving;
+    el('save-scheduling').disabled = saving;
+  }
+
+  async function saveSchedulingPreferences() {
+    if (schedulingSaving) return;
+    if (!(schedulingOverview?.candidates || []).some(item => item?.state === 'available')) {
+      setScheduleMessage('当前没有可用模型，暂时无法保存。', 'error');
+      return;
+    }
+    const preferences = readSchedulePreferences({ preserveUnavailable: true });
+    const validation = validateSchedulePreferences(preferences);
+    if (validation) {
+      setScheduleMessage(validation, 'error');
+      return;
+    }
+    setSchedulingSaving(true);
+    setScheduleMessage('正在保存调度偏好…');
+    try {
+      const result = await call('save_scheduling_preferences', { preferences }, 30000);
+      if (!result || result.ok !== true) throw new Error(result?.error || '偏好未保存。');
+      renderSchedulePreferences(result.preferences || preferences, true);
+      const refreshed = await refreshSchedulingState({ applyPreferences: true, quiet: true });
+      if (refreshed.ok) {
+        setScheduleMessage('偏好已保存，当前生效建议已刷新。', 'success');
+      } else {
+        setScheduleMessage(`偏好已保存，但生效建议刷新失败：${refreshed.error}`, 'error');
+      }
+    } catch (error) {
+      setScheduleMessage(`未能保存偏好：${safeMessage(error.message, '请求失败，请重试。')}`, 'error');
+    } finally {
+      if (schedulingSaving) setSchedulingSaving(false);
+    }
+  }
+
+  function setView(view, { focus = false } = {}) {
+    if (el('evidence-dialog').open) el('evidence-dialog').close();
+    const scheduling = view === 'scheduling';
+    el('connections-view').hidden = scheduling;
+    el('scheduling-view').hidden = !scheduling;
+    el('tab-connections').setAttribute('aria-selected', String(!scheduling));
+    el('tab-scheduling').setAttribute('aria-selected', String(scheduling));
+    el('tab-connections').tabIndex = scheduling ? -1 : 0;
+    el('tab-scheduling').tabIndex = scheduling ? 0 : -1;
+    if (focus) el(scheduling ? 'tab-scheduling' : 'tab-connections').focus();
+    clearTimeout(publicReferenceTimer);
+    if (scheduling) {
+      publicReferenceRefreshes = 0;
+      void refreshSchedulingState({ applyPreferences: !schedulingPreferencesLoaded && !schedulingDirty });
+    }
+  }
+
+  function refreshSchedulingAfterConnectionChange() {
+    return refreshSchedulingState({ applyPreferences: !schedulingPreferencesLoaded && !schedulingDirty, quiet: true });
+  }
+
+  function setSaveBusy(busy) {
+    if (busy && !busyControls) {
+      const controls = [...el('form').querySelectorAll('input,select,button'), el('new'), el('enable-codex'), el('retry-cleanup')]
+        .filter(item => item.id !== 'cancel-save-job');
+      busyControls = controls.map(item => [item, item.disabled]);
+      for (const [item] of busyControls) item.disabled = true;
+      el('profiles').inert = true;
+      el('form').setAttribute('aria-busy', 'true');
+    } else if (!busy && busyControls) {
+      for (const [item, wasDisabled] of busyControls) item.disabled = wasDisabled;
+      busyControls = null;
+      el('profiles').inert = false;
+      el('form').removeAttribute('aria-busy');
+    }
+  }
+
+  async function runSaveJob(args) {
+    if (!globalThis.crypto?.getRandomValues) throw new Error('无法生成安全的任务标识。');
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 15) | 64; bytes[8] = (bytes[8] & 63) | 128;
+    const hex = [...bytes].map(value => value.toString(16).padStart(2, '0')).join('');
+    activeSaveJob = `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+    saveCancelRequested = false;
+    el('cancel-save-job').hidden = false;
+    el('cancel-save-job').disabled = false;
+    let uncertainStart = false;
+    let started = null;
+    try {
+      started = await call('start_provider_save', { ...args, client_job_id: activeSaveJob }, 20000);
+    } catch (_) {
+      uncertainStart = true;
+      el('message').textContent = '启动回执未收到，正在查询同一个任务…';
+    }
+    if (started && (!started.ok || started.job_id !== activeSaveJob)) throw new Error(started.message || '无法开始测试。');
+    let missing = 0;
+    while (true) {
+      let state;
+      try {
+        state = await call('get_provider_save_job', { job_id: activeSaveJob }, 20000);
+      } catch (_) {
+        throw new Error('无法读取保存进度；请先重新打开连接中心核查，避免重复保存。');
+      }
+      if (!state.ok && state.code === 'job_not_found' && uncertainStart && missing++ < 10) {
+        await new Promise(resolve => setTimeout(resolve, 800));
+        continue;
+      }
+      if (!state.ok && state.code === 'job_not_found' && uncertainStart) {
+        throw new Error('无法确认测试任务是否启动；尚未提交连接，测试请求可能仍在运行。');
+      }
+      if (!state.ok) throw new Error(state.message || '无法确认保存任务状态，请重新打开连接中心核查。');
+      uncertainStart = false;
+      if (state.state === 'ready') {
+        let next = null;
+        try {
+          const action = saveCancelRequested ? 'cancel_provider_save_job' : 'commit_provider_save_job';
+          next = await call(action, { job_id: activeSaveJob }, 20000);
+        } catch (_) {
+          el('message').textContent = '正在重新确认同一个任务的状态…';
+        }
+        if (next && !next.ok && !['job_busy', 'job_not_ready', 'already_finished', 'commit_in_progress'].includes(next.code)) {
+          throw new Error(next.message || '无法确认任务提交状态，请重新打开连接中心核查。');
+        }
+      }
+      const done = Number.isInteger(state.tested) ? state.tested : 0;
+      const total = Number.isInteger(state.total) ? state.total : args.models.length;
+      if (state.state === 'succeeded') return state.result;
+      if (state.state === 'committed_cleanup_required') {
+        if (state.result?.ok) return { ...state.result, warning: state.message || '连接已保存，但后续清理需要检查。' };
+        throw new Error(state.message || '连接可能已保存，请先核查状态，不要重复保存。');
+      }
+      if (state.state === 'failed' || state.state === 'cancelled' || state.state === 'interrupted' || state.state === 'detached') {
+        throw new Error(state.result?.message || state.message || '测试未完成，请检查连接后重试。');
+      }
+      el('message').textContent = state.state === 'cancel_requested'
+        ? '正在停止测试并清理未发布的线路…'
+        : state.state === 'committing' || state.state === 'committed' || state.state === 'finalizing'
+          ? '正在保存并启用…'
+          : total === 0 ? '没有新增模型，正在保存…'
+          : `已测试 ${done} / ${total} 个模型${state.current_model ? `，正在测试 ${state.current_model}` : ''}。`;
+      await new Promise(resolve => setTimeout(resolve, 800));
+    }
+  }
+
+  let confirmResolve = null;
+  let confirmReturnFocus = null;
+
+  function settleConfirm(accepted) {
+    const dialog = el('confirm-dialog');
+    const resolve = confirmResolve;
+    confirmResolve = null;
+    if (dialog.open) dialog.close();
+    const returnFocus = confirmReturnFocus;
+    confirmReturnFocus = null;
+    setTimeout(() => {
+      if (returnFocus && document.contains(returnFocus)) returnFocus.focus();
+    }, 0);
+    resolve?.(accepted);
+  }
+
+  function askConfirm(title, body, confirmLabel = '确认删除') {
+    const dialog = el('confirm-dialog');
+    if (dialog.open) return Promise.resolve(false);
+    confirmReturnFocus = document.activeElement;
+    el('confirm-title').textContent = title;
+    el('confirm-body').textContent = body;
+    el('confirm-accept').textContent = confirmLabel;
+    return new Promise(resolve => {
+      confirmResolve = resolve;
+      dialog.showModal();
+      el('confirm-cancel').focus();
+    });
+  }
+
+  function checkedLevels() {
+    return levelInputs.filter(input => input.checked).map(input => input.value);
+  }
+
+  function syncReasoningOptions() {
+    for (const input of levelInputs) {
+      input.disabled = false;
+      input.closest('.check').classList.remove('is-disabled');
+    }
+    const selected = checkedLevels();
+    for (const option of el('default-effort').options) {
+      if (option.value) option.disabled = !selected.includes(option.value);
+    }
+    el('default-effort').disabled = selected.length === 0;
+    if (el('default-effort').selectedOptions[0]?.disabled || selected.length === 0) el('default-effort').value = '';
+    el('default-effort-hint').textContent = selected.length
+      ? '只应选择服务商已支持并列入上方的档位。'
+      : '先选择上方可用档位；留空时沿用原始默认。';
+    el('reasoning-hint').textContent = el('protocol').value === 'codex_subscription'
+      ? '全不勾选时沿用订阅模型的默认档位。'
+      : '留空时不覆盖模型目录；未知档位请按服务商实际能力设置。';
+  }
+
+  let modelRequest = 0;
+
+  function showModelStatus(message) {
+    el('model-status').textContent = message;
+    el('model-hint').hidden = !!message;
+  }
+
+  function setModelDialogStatus(message) {
+    el('model-dialog-status').textContent = message || '';
+  }
+
+  function rememberTuning() {
+    if (!tuningModelId) return;
+    tuningDrafts.set(tuningModelId, {
+      context_window: el('context-window').value,
+      compact_limit: el('compact-limit').value,
+      reasoning_levels: checkedLevels(),
+      default_effort: el('default-effort').value
+    });
+  }
+
+  function showTuning(id) {
+    const draft = tuningDrafts.get(id) || {};
+    el('context-window').value = draft.context_window ?? '';
+    el('compact-limit').value = draft.compact_limit ?? '';
+    for (const input of levelInputs) input.checked = Array.isArray(draft.reasoning_levels) && draft.reasoning_levels.includes(input.value);
+    syncReasoningOptions();
+    el('default-effort').value = draft.default_effort || '';
+    syncReasoningOptions();
+  }
+
+  function updateTuningModels() {
+    const manual = normalizeModelId(el('model').value);
+    const ids = uniqueModelIds([...selectedModels, manual]);
+    const previous = tuningModelId;
+    const next = ids.includes(previous) ? previous : (ids[0] || '');
+    if (next !== previous) {
+      rememberTuning();
+      if (previous && next === manual && selectedModels.size === 0 && !tuningDrafts.has(next)) {
+        tuningDrafts.set(next, tuningDrafts.get(previous));
+        if (tuningDirty.delete(previous)) tuningDirty.add(next);
+      }
+      tuningModelId = next;
+      showTuning(next);
+    }
+    const options = ids.map(id => {
+      const option = document.createElement('option');
+      option.value = id; option.textContent = id;
+      return option;
+    });
+    if (!options.length) {
+      const option = document.createElement('option');
+      option.value = ''; option.textContent = '先选择或填写模型';
+      options.push(option);
+    }
+    el('tuning-model').replaceChildren(...options);
+    el('tuning-model').disabled = !ids.length;
+    el('tuning-model').value = next;
+    el('jev-current-group').hidden = el('protocol').value !== 'system_one';
+    jevModelId = ids.includes(jevModelId) ? jevModelId : (ids[0] || '');
+    const jevOptions = ids.map(id => {
+      const option = document.createElement('option');
+      option.value = id; option.textContent = id;
+      return option;
+    });
+    if (!jevOptions.length) {
+      const option = document.createElement('option');
+      option.value = ''; option.textContent = '先选择或填写模型';
+      jevOptions.push(option);
+    }
+    el('jev-current-model').replaceChildren(...jevOptions);
+    el('jev-current-model').disabled = !ids.length;
+    el('jev-current-model').value = jevModelId;
+  }
+
+  function tuningSettings(id) {
+    const draft = tuningDrafts.get(id) || {};
+    const number = (value, label) => {
+      if (value === '' || value == null) return null;
+      const result = Number(value);
+      if (!Number.isInteger(result) || result < 1 || result > 100000000) throw new Error(`${id}：${label}须为 1 至 100000000 的整数。`);
+      return result;
+    };
+    const context = number(draft.context_window, '上下文窗口');
+    const compact = number(draft.compact_limit, '自动压缩阈值');
+    if (compact !== null && (context === null || compact > context)) throw new Error(`${id}：压缩阈值须同时填写上下文窗口且不能超过它。`);
+    const chosen = Array.isArray(draft.reasoning_levels) && draft.reasoning_levels.length ? draft.reasoning_levels : null;
+    const defaultEffort = draft.default_effort || null;
+    if (defaultEffort && (!chosen || !chosen.includes(defaultEffort))) throw new Error(`${id}：默认思考档位必须属于已选档位。`);
+    return { context_window: context, compact_limit: compact, reasoning_levels: chosen, default_effort: defaultEffort };
+  }
+
+  function renderSelectedModels() {
+    const box = el('selected-models');
+    box.replaceChildren();
+    if (!selectedModels.size) {
+      const empty = document.createElement('li');
+      empty.className = 'selected-models-empty';
+      empty.textContent = '尚未选择模型';
+      box.append(empty);
+    } else {
+      for (const id of selectedModels) {
+        const item = document.createElement('li');
+        item.className = 'selected-model';
+        const name = document.createElement('code');
+        name.textContent = id;
+        name.title = id;
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'remove-model';
+        remove.setAttribute('aria-label', `移除模型 ${id}`);
+        remove.title = `移除 ${id}`;
+        remove.textContent = '×';
+        remove.addEventListener('click', () => {
+          selectedModels.delete(id);
+          renderSelectedModels();
+          syncReasoningOptions();
+        });
+        item.append(name, remove);
+        box.append(item);
+      }
+    }
+    el('selected-model-count').textContent = String(selectedModels.size);
+    el('open-model-dialog').setAttribute('aria-label', `选择模型，当前已选 ${selectedModels.size} 个`);
+    updateTuningModels();
+  }
+
+  // Adapted from CC Switch v4.0.21 FetchedModelPicker.tsx, MIT; see third_party/cc-switch.
+  function formatContextWindow(tokens) {
+    const base = tokens % 1024 === 0 ? 1024 : 1000;
+    if (tokens >= base * base) return `${Number((tokens / (base * base)).toPrecision(3))}M`;
+    if (tokens >= base) return `${Number((tokens / base).toPrecision(3))}K`;
+    return String(tokens);
+  }
+
+  function modelChoices() {
+    const configured = uniqueModelIds([...selectedModels, ...modelDraft]);
+    const fetchedIds = new Set(modelCatalog.map(model => model.id));
+    const extraIds = configured.filter(id => !fetchedIds.has(id));
+    return [...extraIds.map(id => ({ id, owned_by: '' })), ...modelCatalog];
+  }
+
+  function visibleModelChoices() {
+    const normalized = el('model-search').value.trim().toLowerCase();
+    const onlySelected = el('only-selected-models').checked;
+    const matches = (id, ownedBy) => (!onlySelected || modelDraft.has(id)) &&
+      (!normalized || id.toLowerCase().includes(normalized) || !!ownedBy?.toLowerCase().includes(normalized));
+    return modelChoices().filter(model => matches(model.id, model.owned_by));
+  }
+
+  function setDraftChecked(ids, checked) {
+    const next = new Set(modelDraft);
+    for (const id of ids) {
+      if (checked) next.add(id);
+      else next.delete(id);
+    }
+    modelDraft = next;
+  }
+
+  function updateModelDialogMeta() {
+    const choices = modelChoices();
+    const visible = visibleModelChoices();
+    el('model-selection-count').textContent = `已选 ${modelDraft.size} / 共 ${choices.length}`;
+    el('select-all-models').disabled = !visible.some(item => !modelDraft.has(item.id));
+    el('select-no-models').disabled = !visible.some(item => modelDraft.has(item.id));
+  }
+
+  function renderModelList() {
+    const list = el('model-list');
+    const visible = visibleModelChoices();
+    list.replaceChildren();
+    if (!visible.length) {
+      const empty = document.createElement('div');
+      empty.className = 'model-list-empty';
+      if (!modelChoices().length) {
+        empty.textContent = '尚无可用模型。可刷新获取，或关闭后手动填写模型 ID。';
+      } else if (el('only-selected-models').checked && !modelDraft.size) {
+        empty.textContent = '还没有已选模型。';
+      } else {
+        empty.textContent = '没有匹配的模型。';
+      }
+      list.append(empty);
+    } else {
+      for (const choice of visible) {
+        const row = document.createElement('label');
+        row.className = 'model-option';
+        row.dataset.modelId = choice.id;
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.checked = modelDraft.has(choice.id);
+        input.setAttribute('aria-label', `选择模型 ${choice.id}`);
+        input.addEventListener('change', () => {
+          setDraftChecked([choice.id], input.checked);
+          if (el('only-selected-models').checked && !input.checked) {
+            const rows = [...list.querySelectorAll('.model-option')];
+            const index = rows.indexOf(row);
+            const nextId = (rows[index + 1] || rows[index - 1])?.dataset.modelId;
+            renderModelList();
+            requestAnimationFrame(() => {
+              const next = nextId && [...list.querySelectorAll('.model-option')]
+                .find(item => item.dataset.modelId === nextId);
+              (next?.querySelector('input') || el('only-selected-models')).focus();
+            });
+          } else {
+            updateModelDialogMeta();
+          }
+        });
+        const name = document.createElement('code');
+        name.textContent = choice.id;
+        const capability = document.createElement('span');
+        capability.className = 'model-capability';
+        const details = [];
+        if (Number.isInteger(choice.context_window) && choice.context_window > 0) details.push(formatContextWindow(choice.context_window));
+        if (Array.isArray(choice.reasoning_levels) && choice.reasoning_levels.length) details.push('推理');
+        if (choice.supports_image === true) details.push('图片');
+        if (choice.reference_sources && Object.keys(choice.reference_sources).length) {
+          details.push('参考');
+          capability.title = '部分能力来自 models.dev 等公开资料，需以线路实际支持为准。';
+        }
+        capability.textContent = details.join(' · ');
+        capability.hidden = !details.length;
+        const owner = document.createElement('span');
+        owner.className = 'model-owner';
+        owner.textContent = choice.owned_by || '';
+        row.append(input, name, capability, owner);
+        list.append(row);
+      }
+    }
+    updateModelDialogMeta();
+  }
+
+  function closeModelDialog(restoreFocus = true) {
+    const dialog = el('model-dialog');
+    modelDraft = new Set();
+    if (dialog.open) dialog.close();
+    const returnFocus = modelDialogReturnFocus;
+    modelDialogReturnFocus = null;
+    if (restoreFocus) {
+      setTimeout(() => {
+        if (returnFocus && document.contains(returnFocus)) returnFocus.focus();
+      }, 0);
+    }
+  }
+
+  function openModelDialog() {
+    const dialog = el('model-dialog');
+    if (dialog.open) return;
+    modelDialogReturnFocus = document.activeElement;
+    modelDraft = new Set(selectedModels);
+    const manual = el('model').value.trim();
+    if (manual) modelDraft.add(manual);
+    el('model-search').value = '';
+    el('only-selected-models').checked = false;
+    renderModelList();
+    setModelDialogStatus('');
+    dialog.showModal();
+    el('model-search').focus();
+    if (!modelCatalog.length) fetchModels();
+  }
+
+  function cancelModelSelection() {
+    closeModelDialog();
+  }
+
+  function applyModelSelection() {
+    const configured = [...selectedModels];
+    const next = new Set(configured.filter(id => modelDraft.has(id)));
+    for (const { id } of modelCatalog) if (modelDraft.has(id)) next.add(id);
+    for (const id of modelDraft) next.add(id);
+    selectedModels = next;
+    el('model').value = '';
+    renderSelectedModels();
+    syncReasoningOptions();
+    closeModelDialog();
+    showModelStatus(selectedModels.size ? `已选择 ${selectedModels.size} 个模型。` : '尚未选择模型；仍可手动填写。');
+  }
+
+  function invalidateModels() {
+    modelRequest++;
+    modelCatalog = [];
+    modelCatalogMeta = { source: '', truncated: false };
+    modelCatalogLoading = false;
+    modelDraft = new Set();
+    el('model-search').value = '';
+    el('only-selected-models').checked = false;
+    el('refresh-models').disabled = false;
+    el('refresh-models').classList.remove('is-loading');
+    setModelDialogStatus('');
+    showModelStatus('');
+    if (el('model-dialog').open) renderModelList();
+  }
+
+  async function fetchModels() {
+    if (modelCatalogLoading) return;
+    const protocol = el('protocol').value;
+    const base = el('base-url').value.trim();
+    const key = el('key').value;
+    const id = el('provider-id').value;
+    const profile = currentProfile();
+    if (profile?.disabled) {
+      const message = '连接已停用，已跳过模型获取。仍可手动填写模型。';
+      setModelDialogStatus(message);
+      showModelStatus(message);
+      return;
+    }
+    if (protocol !== 'codex_subscription' && (!base || (!key && !profile?.has_key))) {
+      const message = '请先填写接口地址和 API 密钥，或关闭窗口手动填写模型。';
+      setModelDialogStatus(message);
+      showModelStatus(message);
+      return;
+    }
+    const serial = ++modelRequest;
+    modelCatalogLoading = true;
+    el('refresh-models').disabled = true;
+    el('refresh-models').classList.add('is-loading');
+    const loading = '正在获取模型列表…';
+    setModelDialogStatus(loading);
+    showModelStatus(loading);
+    try {
+      const result = await call('fetch_models', {
+        protocol,
+        base_url: protocol === 'codex_subscription' ? '' : base,
+        key: protocol === 'codex_subscription' ? '' : key,
+        provider_id: id
+      }, 30000);
+      if (serial !== modelRequest) return;
+      if (!result.ok || !Array.isArray(result.models)) {
+        const message = safeMessage(result.message, '未能获取模型列表，请手动填写模型。');
+        setModelDialogStatus(message);
+        showModelStatus(message);
+        return;
+      }
+      const choices = new Map();
+      for (const entry of result.models) {
+        const item = typeof entry === 'string' ? { id: entry } : entry;
+        const modelId = normalizeModelId(item?.id);
+        if (!modelId || choices.has(modelId)) continue;
+        choices.set(modelId, {
+          id: modelId,
+          owned_by: typeof item.owned_by === 'string' ? item.owned_by : typeof item.ownedBy === 'string' ? item.ownedBy : '',
+          context_window: item.context_window,
+          reasoning_levels: item.reasoning_levels,
+          supports_image: item.supports_image === true,
+          reference_sources: item.reference_sources && typeof item.reference_sources === 'object' ? item.reference_sources : null
+        });
+      }
+      modelCatalog = [...choices.values()];
+      modelCatalogMeta = {
+        source: typeof result.source === 'string' ? result.source : '线路',
+        truncated: result.truncated === true
+      };
+      renderModelList();
+      const message = modelCatalog.length
+        ? `已从${modelCatalogMeta.source}获取 ${modelCatalog.length} 个模型${modelCatalogMeta.truncated ? '（列表已截断）' : ''}。`
+        : '未提供模型列表，请关闭窗口手动填写模型。';
+      setModelDialogStatus(message);
+      showModelStatus(message);
+    } catch (error) {
+      if (serial !== modelRequest) return;
+      const message = safeMessage(error.message, '获取模型失败，请手动填写或重试。');
+      setModelDialogStatus(message);
+      showModelStatus(message);
+    } finally {
+      if (serial === modelRequest) {
+        modelCatalogLoading = false;
+        el('refresh-models').disabled = false;
+        el('refresh-models').classList.remove('is-loading');
+      }
+    }
+  }
+
+  function updateProtocol() {
+    const protocol = el('protocol').value;
+    const official = protocol === 'codex_subscription';
+    const gemini = protocol === 'gemini_native';
+    const jev = protocol === 'system_one';
+    el('context-window').placeholder = '沿用模型目录或手动填写';
+    el('context-window-hint').textContent = '留空时不覆盖模型目录；请以服务商实际能力为准。';
+    if (official) el('key').value = '';
+    el('base-url').disabled = official;
+    el('base-url').required = !official;
+    el('key-group').hidden = official;
+    el('model-tuning').hidden = jev;
+    el('endpoint-hint').textContent = official
+      ? '使用 Codex 已登录的 OpenAI 订阅。'
+      : jev
+        ? '填写完整的 System One 地址，例如 https://example.com/v1/systemone。'
+        : gemini
+        ? '填写 Gemini API 或兼容服务商的基础地址，例如 https://generativelanguage.googleapis.com。图片、声音和视频支持情况以实际线路为准。'
+        : protocol === 'anthropic_messages'
+        ? '填写 Claude API 或兼容服务商的基础地址，例如 https://api.anthropic.com。'
+        : '填写服务商提供的基础地址，例如 https://example.com/v1。';
+    el('model-hint').textContent = official
+      ? '可从本机订阅目录多选，也可手动填写；保存时一并提交。'
+      : gemini
+        ? '选择或手动填写 Gemini 模型 ID（如 gemini-2.5-pro）；以当前账户实际可用范围为准。'
+      : '可从模型列表多选，也可手动填写；保存时一并提交。';
+    updateTuningModels();
+    syncReasoningOptions();
+  }
+
+  function clearForm() {
+    invalidateModels();
+    el('protocol').querySelector('option[value="codex_subscription"]')?.remove();
+    el('form').reset();
+    selectedModels.clear();
+    tuningModelId = '';
+    tuningDrafts = new Map();
+    tuningDirty = new Set();
+    jevModelId = '';
+    renderSelectedModels();
+    el('provider-id').value = '';
+    el('form-title').textContent = '新增连接';
+    el('key').value = '';
+    el('key').placeholder = '请输入密钥';
+    el('activate').hidden = true;
+    el('activate').textContent = '启用此线路';
+    el('disable').hidden = true;
+    el('delete').hidden = true;
+    el('message').textContent = '';
+    updateProtocol();
+  }
+
+  function edit(profile) {
+    invalidateModels();
+    el('protocol').querySelector('option[value="codex_subscription"]')?.remove();
+    if (profile.protocol === 'codex_subscription') {
+      const legacy = document.createElement('option');
+      legacy.value = 'codex_subscription';
+      legacy.textContent = '已保存的 Codex 订阅';
+      el('protocol').append(legacy);
+    }
+    el('provider-id').value = profile.id;
+    el('name').value = profile.name;
+    el('protocol').value = profile.protocol;
+    el('base-url').value = profile.base_url || '';
+    el('model').value = '';
+    selectedModels = new Set(profileModels(profile));
+    tuningModelId = '';
+    tuningDrafts = new Map(Object.entries(profile.model_settings || {}));
+    if (profile.model && !tuningDrafts.has(profile.model)) tuningDrafts.set(profile.model, profile);
+    tuningDirty = new Set();
+    jevModelId = profile.model || '';
+    renderSelectedModels();
+    el('key').value = '';
+    el('key').placeholder = profile.has_key ? '留空以保留原密钥' : '请输入密钥';
+    el('form-title').textContent = '编辑连接';
+    el('activate').hidden = !profile.disabled && (isActive(profile.id) || profile.protocol === 'codex_subscription');
+    el('activate').textContent = profile.disabled ? '重新启用' : '启用此线路';
+    el('disable').hidden = !!profile.disabled || !isActive(profile.id);
+    el('delete').hidden = false;
+    el('message').textContent = '';
+    updateProtocol();
+  }
+
+  function isActive(profileId) {
+    return activeModels.has(profileId) || profileId === activeJev;
+  }
+
+  function render() {
+    const box = el('profiles');
+    box.replaceChildren();
+    if (!profiles.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.textContent = '还没有保存连接。添加后可以在这里查看或修改。';
+      box.append(empty);
+      return;
+    }
+    for (const profile of profiles) {
+      const active = isActive(profile.id);
+      const savedModels = profileModels(profile);
+      const modelSummary = savedModels.length === 1
+        ? savedModels[0]
+        : savedModels.length
+          ? `${savedModels[0]} 等 ${savedModels.length} 个模型`
+          : '未设置模型';
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'profile';
+      row.setAttribute('aria-label', `${profile.name}，${modelSummary}${active && !profile.disabled ? '，当前线路' : ''}${profile.disabled ? '，已停用' : ''}`);
+
+      const avatar = document.createElement('span');
+      avatar.className = 'avatar';
+      avatar.textContent = (profile.name || '?').slice(0, 1).toUpperCase();
+
+      const copy = document.createElement('span');
+      copy.className = 'profile-copy';
+      const title = document.createElement('span');
+      title.className = 'profile-name';
+      title.textContent = profile.name;
+      if (active && !profile.disabled) {
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.textContent = '当前线路';
+        title.append(badge);
+      }
+      if (profile.disabled) {
+        const badge = document.createElement('span');
+        badge.className = 'badge disabled';
+        badge.textContent = '已停用';
+        title.append(badge);
+      }
+      const context = Number.isInteger(profile.context_window)
+        ? `${profile.context_window.toLocaleString('zh-CN')} tokens`
+        : null;
+      const sub = document.createElement('span');
+      sub.className = 'profile-sub';
+      sub.textContent = [modelSummary, context, profile.has_key ? '密钥已保存' : '订阅登录'].filter(Boolean).join(' · ');
+      copy.append(title, sub);
+
+      const arrow = document.createElement('span');
+      arrow.className = 'chevron';
+      arrow.setAttribute('aria-hidden', 'true');
+      arrow.textContent = '›';
+      row.append(avatar, copy, arrow);
+      row.addEventListener('click', () => edit(profile));
+      box.append(row);
+    }
+  }
+
+  async function refresh() {
+    const result = await call('list_providers');
+    profiles = result.profiles || [];
+    activeModels = new Set(result.active_models || []);
+    activeJev = result.active_jev || null;
+    pendingCredentialCleanup = Number(result.pending_credential_cleanup) || 0;
+    render();
+    el('cleanup-actions').hidden = pendingCredentialCleanup <= 0;
+    el('cleanup-count').textContent = pendingCredentialCleanup > 0 ? `${pendingCredentialCleanup} 项待处理` : '';
+    el('route-status').textContent = result.routing_active
+      ? '新聊天的模型路由已启用；上下文参数未设置时沿用原默认。'
+      : '连接已保存在本机；Codex 模型路由尚未切换。';
+    const globalOverrides = [];
+    if (Number.isInteger(result.global_context_override)) {
+      globalOverrides.push(`全局上下文覆盖 ${result.global_context_override.toLocaleString('zh-CN')} tokens`);
+    }
+    if (Number.isInteger(result.global_compact_override)) {
+      globalOverrides.push(`全局压缩覆盖 ${result.global_compact_override.toLocaleString('zh-CN')} tokens`);
+    }
+    el('global-override').hidden = globalOverrides.length === 0;
+    el('global-override').textContent = globalOverrides.length
+      ? `${globalOverrides.join('；')}。这些全局覆盖可能阻止逐模型设置生效。`
+      : '';
+    el('enable-codex').hidden = !!result.routing_active || !result.service?.running ||
+      !(result.service?.official_route_ready || result.service?.external_route_ready);
+  }
+
+  async function activate(id) {
+    const result = await call('activate_connection', { provider_id: id }, 135000);
+    if (!result.ok) {
+      const labels = {
+        probe_failed: '线路测试未通过，请检查地址、密钥和服务状态。',
+        engine_not_running: '内置服务未能启动。',
+        activation_busy: '另一个连接正在启用，请稍后重试。'
+      };
+      throw new Error(result.message || labels[result.code] || '线路未能启用，请稍后重试。');
+    }
+    return result;
+  }
+
+  function extraWarnings(result) {
+    const warnings = [];
+    if (Array.isArray(result.warnings)) warnings.push(...result.warnings.filter(item => typeof item === 'string' && item));
+    else if (typeof result.warnings === 'string' && result.warnings) warnings.push(result.warnings);
+    for (const key of ['warning', 'credential_cleanup_warning', 'catalog_warning']) {
+      if (typeof result[key] === 'string' && result[key]) warnings.push(result[key]);
+    }
+    if (result.catalog_updated === false || result.catalog_pending === true) {
+      warnings.push('模型目录待更新，请稍后刷新。');
+    }
+    if (result.historical_credentials_untracked === true) {
+      warnings.push('历史凭据未必可追溯，未批量删除');
+    }
+    if (typeof result.message === 'string' && result.message && !/连接已删除|删除成功/.test(result.message)) {
+      warnings.push(result.message);
+    }
+    return [...new Set(warnings)];
+  }
+
+  function deleteResultMessage(result) {
+    const prefix = result.credential_cleanup_pending === true
+      ? '连接已删除，但凭据清理未完成，可稍后重试'
+      : '连接已删除。';
+    return [prefix, ...extraWarnings(result)].join(' ');
+  }
+
+  function activeDeleteText(profile) {
+    return `连接“${profile?.name || '此连接'}”是当前线路。删除后相关模型或 Jev 将不可用，旧聊天可能受影响。确定继续删除吗？此操作无法撤销。`;
+  }
+
+  async function deleteConnection() {
+    const id = el('provider-id').value;
+    const profile = profiles.find(item => item.id === id);
+    if (!id) return;
+    let active = isActive(id);
+    const initialText = active
+      ? activeDeleteText(profile)
+      : `确定删除“${profile?.name || '此连接'}”吗？此操作无法撤销。`;
+    const button = el('delete');
+    button.disabled = true;
+    try {
+      if (!await askConfirm(active ? '删除当前线路？' : '删除连接？', initialText)) return;
+      el('message').textContent = '正在删除…';
+      let result = await call('delete_provider', { provider_id: id, confirm_active: active }, 60000);
+      if (!result.ok && result.code === 'connection_in_use' && !active) {
+        if (!await askConfirm('删除正在使用的线路？', activeDeleteText(profile))) {
+          el('message').textContent = '已取消删除，连接未改变。';
+          return;
+        }
+        active = true;
+        el('message').textContent = '正在删除当前线路…';
+        result = await call('delete_provider', { provider_id: id, confirm_active: true }, 60000);
+      }
+      if (!result.ok) throw new Error(result.message || '删除失败，请稍后重试。');
+      clearForm();
+      await refresh();
+      await refreshSchedulingAfterConnectionChange();
+      el('message').textContent = safeMessage(deleteResultMessage(result), '连接已删除。');
+      el('new').focus();
+    } catch (error) {
+      el('message').textContent = safeMessage(error.message, '删除失败，请稍后重试。');
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function disableConnection() {
+    const id = el('provider-id').value;
+    const profile = profiles.find(item => item.id === id);
+    if (!id) return;
+    const button = el('disable');
+    button.disabled = true;
+    try {
+      if (isActive(id) && !await askConfirm('停用当前线路？', '停用后相关模型或子代理会跳过，旧聊天可能受影响。', '确认停用')) return;
+      el('message').textContent = '正在停用…';
+      const result = await call('disable_connection', { provider_id: id }, 60000);
+      if (!result.ok) throw new Error(result.message || '停用失败，请稍后重试。');
+      await refresh();
+      await refreshSchedulingAfterConnectionChange();
+      const updated = profiles.find(item => item.id === id);
+      if (updated) edit(updated);
+      el('message').textContent = result.catalog_updated === false
+        ? '连接已停用，但模型列表更新失败。'
+        : '连接已停用；密钥和设置已保留。';
+    } catch (error) {
+      el('message').textContent = safeMessage(error.message, '停用失败，请稍后重试。');
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  el('protocol').addEventListener('change', () => { invalidateModels(); updateProtocol(); });
+  for (const id of ['base-url', 'key']) {
+    el(id).addEventListener('input', invalidateModels);
+  }
+  el('close-evidence').addEventListener('click', () => el('evidence-dialog').close());
+  el('evidence-dialog').addEventListener('click', event => { if (event.target === el('evidence-dialog')) el('evidence-dialog').close(); });
+  el('open-model-dialog').addEventListener('click', openModelDialog);
+  el('refresh-models').addEventListener('click', fetchModels);
+  el('model-search').addEventListener('input', renderModelList);
+  el('only-selected-models').addEventListener('change', renderModelList);
+  el('select-all-models').addEventListener('click', () => {
+    setDraftChecked(visibleModelChoices().map(item => item.id), true);
+    renderModelList();
+  });
+  el('select-no-models').addEventListener('click', () => {
+    setDraftChecked(visibleModelChoices().map(item => item.id), false);
+    renderModelList();
+  });
+  el('cancel-model-selection').addEventListener('click', cancelModelSelection);
+  el('apply-model-selection').addEventListener('click', applyModelSelection);
+  el('model-dialog').addEventListener('cancel', event => {
+    event.preventDefault();
+    cancelModelSelection();
+  });
+  el('model-dialog').addEventListener('click', event => {
+    if (event.target === el('model-dialog')) cancelModelSelection();
+  });
+  el('model').addEventListener('input', () => {
+    updateTuningModels();
+    syncReasoningOptions();
+  });
+  el('tuning-model').addEventListener('change', () => {
+    rememberTuning();
+    tuningModelId = el('tuning-model').value;
+    showTuning(tuningModelId);
+  });
+  el('jev-current-model').addEventListener('change', () => { jevModelId = el('jev-current-model').value; });
+  for (const id of ['context-window', 'compact-limit', 'default-effort']) {
+    el(id).addEventListener('input', () => { if (tuningModelId) tuningDirty.add(tuningModelId); });
+    el(id).addEventListener('change', () => { if (tuningModelId) tuningDirty.add(tuningModelId); });
+  }
+  levelInputs.forEach(input => input.addEventListener('change', () => {
+    if (tuningModelId) tuningDirty.add(tuningModelId);
+    syncReasoningOptions();
+  }));
+  el('tab-connections').addEventListener('click', () => setView('connections'));
+  el('tab-scheduling').addEventListener('click', () => setView('scheduling'));
+  for (const id of ['tab-connections', 'tab-scheduling']) {
+    el(id).addEventListener('keydown', event => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      const next = event.key === 'ArrowLeft' || event.key === 'Home' ? 'connections' : 'scheduling';
+      setView(next, { focus: true });
+    });
+  }
+  el('refresh-scheduling').addEventListener('click', () => {
+    publicReferenceRefreshes = 0;
+    void refreshSchedulingState({ applyPreferences: !schedulingDirty });
+  });
+  el('switch-manual').addEventListener('click', async () => {
+    if (schedulingSaving) return;
+    if (schedulingOverview?.preferences_saved !== true) {
+      el('routing-message').textContent = '请先保存完整的首选与备选偏好，再切换手动调度。';
+      return;
+    }
+    setSchedulingSaving(true);
+    el('switch-manual').disabled = true;
+    try {
+      const result = await call('save_scheduling_preferences', { mode: 'manual' }, 30000);
+      if (!result?.ok) throw new Error(result?.error || '切换失败');
+      const refreshed = await refreshSchedulingState({ quiet: true });
+      el('routing-message').textContent = refreshed.ok ? (schedulingDirty ? '已切换手动调度，未保存的修改仍在表单中。' : '已切换手动调度。') : '已切换手动调度，但刷新概览失败。';
+    } catch (error) { el('routing-message').textContent = `切换手动调度失败：${safeMessage(error.message, '请求失败')}`; }
+    finally { setSchedulingSaving(false); el('switch-manual').disabled = false; }
+  });
+  el('restore-auto').addEventListener('click', async () => {
+    if (schedulingSaving) return;
+    setSchedulingSaving(true);
+    el('restore-auto').disabled = true;
+    try {
+      const result = await call('save_scheduling_preferences', { mode: 'auto' }, 30000);
+      if (!result?.ok) throw new Error(result?.error || '恢复失败');
+      const refreshed = await refreshSchedulingState({ quiet: true });
+      if (refreshed.ok) el('routing-message').textContent = '已恢复自动调度，手动偏好已保留。';
+      else el('routing-message').textContent = '已恢复自动调度，但刷新概览失败。';
+    } catch (error) { el('routing-message').textContent = `恢复自动调度失败：${safeMessage(error.message, '请求失败')}`; }
+    finally { setSchedulingSaving(false); el('restore-auto').disabled = false; }
+  });
+  el('scheduling-form').addEventListener('change', event => {
+    const select = event.target.closest('select[data-tier][data-role]');
+    if (!select || schedulingSaving) return;
+    const tier = select.dataset.tier;
+    const role = select.dataset.role;
+    const field = role.replaceAll('-', '_');
+    schedulingEditedFields.add(`${tier}:${field}`);
+    if (role === 'model' || role === 'fallback-model') {
+      setScheduleModelTitle(select);
+      const isFallback = role === 'fallback-model';
+      const effortSelect = scheduleControl(tier, isFallback ? 'fallback-effort' : 'effort');
+      const candidate = scheduleCandidate(select.value);
+      const efforts = Array.isArray(candidate?.efforts) ? candidate.efforts : [];
+      const nextEffort = select.value
+        ? efforts.includes(effortSelect.value)
+          ? effortSelect.value
+          : efforts[0] || ''
+        : '';
+      populateScheduleEffortSelect(effortSelect, select.value, nextEffort, isFallback);
+      schedulingEditedFields.add(`${tier}:${isFallback ? 'fallback_effort' : 'effort'}`);
+      if (tier === 'critical' && select.value) {
+        const capability = scheduleCapability(candidate);
+        if (!capability.eligible) {
+          setScheduleDirty(true);
+          setScheduleMessage('该模型目前不可用于关键任务，请检查连接和可用强度。', 'warning');
+          return;
+        }
+      }
+    }
+    setScheduleDirty(true);
+    setScheduleMessage('有未保存修改；当前生效建议仍来自上一次快照。');
+  });
+  el('scheduling-form').addEventListener('submit', event => {
+    event.preventDefault();
+    void saveSchedulingPreferences();
+  });
+  window.addEventListener('focus', () => {
+    if (el('scheduling-view').hidden) return;
+    const now = Date.now();
+    if (now - schedulingFocusRefreshAt < 750) return;
+    schedulingFocusRefreshAt = now;
+    void refreshSchedulingState({ applyPreferences: false, quiet: true });
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible' || el('scheduling-view').hidden) return;
+    const now = Date.now();
+    if (now - schedulingFocusRefreshAt < 750) return;
+    schedulingFocusRefreshAt = now;
+    void refreshSchedulingState({ applyPreferences: false, quiet: true });
+  });
+  el('new').addEventListener('click', () => { clearForm(); el('name').focus(); });
+  el('disable').addEventListener('click', disableConnection);
+  el('delete').addEventListener('click', deleteConnection);
+  el('cancel-save-job').addEventListener('click', async () => {
+    if (!activeSaveJob) return;
+    saveCancelRequested = true;
+    const button = el('cancel-save-job');
+    button.disabled = true;
+    try {
+      const result = await call('cancel_provider_save_job', { job_id: activeSaveJob }, 15000);
+      el('message').textContent = safeMessage(result.message, result.ok ? '正在停止测试…' : '无法取消，请等待最终状态。');
+      if (!result.ok && result.code !== 'commit_in_progress' && result.code !== 'already_finished') button.disabled = false;
+    } catch (_) {
+      el('message').textContent = '未能确认取消，请等待测试状态。';
+      button.disabled = false;
+    }
+  });
+  el('confirm-cancel').addEventListener('click', () => settleConfirm(false));
+  el('confirm-accept').addEventListener('click', () => settleConfirm(true));
+  el('confirm-dialog').addEventListener('cancel', event => { event.preventDefault(); settleConfirm(false); });
+  el('confirm-dialog').addEventListener('click', event => {
+    if (event.target === el('confirm-dialog')) settleConfirm(false);
+  });
+
+  el('retry-cleanup').addEventListener('click', async () => {
+    const button = el('retry-cleanup');
+    button.disabled = true;
+    el('route-message').textContent = '正在重试凭据清理…';
+    try {
+      const result = await call('retry_credential_cleanup', {}, 30000);
+      if (result.ok === false) throw new Error(result.message || '凭据清理未完成。');
+      await refresh();
+      el('route-message').textContent = result.message || (pendingCredentialCleanup > 0
+        ? `凭据清理重试后仍有 ${pendingCredentialCleanup} 项待处理。`
+        : '凭据清理已完成。');
+      if (pendingCredentialCleanup === 0) el('new').focus();
+    } catch (error) {
+      el('route-message').textContent = safeMessage(error.message, '凭据清理未完成。');
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  el('enable-codex').addEventListener('click', async () => {
+    const button = el('enable-codex');
+    button.disabled = true;
+    el('route-message').textContent = '正在核对并接入…';
+    try {
+      const result = await call('enable_codex', {}, 45000);
+      if (!result.ok) throw new Error(result.message || '接入未完成。');
+      await refresh();
+      await refreshSchedulingAfterConnectionChange();
+      el('route-message').textContent = '已接入，重新加载后的聊天会使用新线路。';
+    } catch (error) {
+      el('route-message').textContent = safeMessage(error.message, '接入未完成。');
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  el('activate').addEventListener('click', async () => {
+    const button = el('activate');
+    button.disabled = true;
+    el('message').textContent = '正在检查并启用…';
+    const profile = currentProfile();
+    try {
+      if (!profile) throw new Error('连接不存在，请重新选择。');
+      const models = profileModels(profile);
+      if (!models.length) throw new Error('连接没有保存模型。');
+      setSaveBusy(true);
+      const result = await runSaveJob({
+        name: profile.name, protocol: profile.protocol, base_url: profile.base_url || '',
+        model: models[0], models, key: '', provider_id: profile.id,
+        context_window: profile.context_window ?? null, compact_limit: profile.compact_limit ?? null,
+        reasoning_levels: profile.reasoning_levels ?? null, default_effort: profile.default_effort ?? null,
+        retest_existing: true
+      });
+      if (!result?.ok || !result.activation?.ok) throw new Error(result?.message || '未能确认线路已启用。');
+      setSaveBusy(false);
+      await refresh();
+      await refreshSchedulingAfterConnectionChange();
+      const updated = profiles.find(item => item.id === profile.id);
+      if (updated) edit(updated);
+      el('message').textContent = result.activation.kind === 'jev'
+        ? 'Jev 线路已选中，重载后生效。'
+        : result.activation.catalog_updated === false
+          ? '线路已启用，但模型列表更新失败。'
+          : '线路已启用。';
+      el('message').textContent = safeMessage([el('message').textContent, ...extraWarnings(result)].join(' '), '线路已启用。');
+    } catch (error) {
+      el('message').textContent = safeMessage(error.message, '线路未能启用。');
+    } finally {
+      activeSaveJob = '';
+      saveCancelRequested = false;
+      el('cancel-save-job').hidden = true;
+      setSaveBusy(false);
+      button.disabled = false;
+    }
+  });
+
+  el('form').addEventListener('submit', async event => {
+    event.preventDefault();
+    const button = el('save');
+    button.disabled = true;
+    el('message').textContent = '正在准备测试…';
+    const jev = el('protocol').value === 'system_one';
+    const official = el('protocol').value === 'codex_subscription';
+    const manualModel = normalizeModelId(el('model').value);
+    let submittedModels = uniqueModelIds([...selectedModels, manualModel]);
+    if (!submittedModels.length) {
+      el('message').textContent = '请至少选择一个模型，或手动填写模型 ID。';
+      el('model').focus();
+      button.disabled = false;
+      return;
+    }
+    if (manualModel && !selectedModels.has(manualModel)) {
+      selectedModels.add(manualModel);
+      renderSelectedModels();
+    }
+    if (jev && submittedModels.includes(jevModelId)) submittedModels = [jevModelId, ...submittedModels.filter(id => id !== jevModelId)];
+    el('model').value = '';
+    syncReasoningOptions();
+    rememberTuning();
+    let primarySettings, overrides;
+    try {
+      primarySettings = jev ? {} : tuningSettings(submittedModels[0]);
+      overrides = jev ? {} : Object.fromEntries(
+        submittedModels.filter(id => tuningDirty.has(id)).map(id => [id, tuningSettings(id)])
+      );
+    } catch (error) {
+      el('message').textContent = safeMessage(error.message, '模型设置无效。');
+      button.disabled = false;
+      return;
+    }
+    el('message').textContent = '正在保存；新增模型会先进行短测试…';
+    const args = {
+      name: el('name').value.trim(),
+      protocol: el('protocol').value,
+      base_url: official ? '' : el('base-url').value.trim(),
+      model: submittedModels[0],
+      models: submittedModels,
+      key: official ? '' : el('key').value,
+      provider_id: el('provider-id').value,
+      context_window: primarySettings.context_window ?? null,
+      compact_limit: primarySettings.compact_limit ?? null,
+      reasoning_levels: primarySettings.reasoning_levels ?? null,
+      default_effort: primarySettings.default_effort ?? null
+    };
+    if (Object.keys(overrides).length) args.per_model_overrides = overrides;
+    setSaveBusy(true);
+    try {
+      const result = await runSaveJob(args);
+      if (!result?.ok) throw new Error(result?.message || '保存失败。');
+      if (!result.profile?.id) throw new Error('保存失败：未返回连接信息。');
+      setSaveBusy(false);
+      const hasReference = Object.values(result.detected_models || {}).some(item => item?.reference_sources && Object.keys(item.reference_sources).length);
+      const testedCount = Array.isArray(result.tested_models) ? result.tested_models.length : submittedModels.length;
+      const details = testedCount ? `本次测试了 ${testedCount} 个模型。${hasReference ? '部分能力来自公开参考资料，请以线路实际支持为准。' : ''}`
+        : '没有新增模型，本次未重复测试。';
+      const warnings = extraWarnings(result);
+      el('key').value = '';
+      let activated = result.activation?.ok ? result.activation : null;
+      let catalogWarning = (official && result.catalog_updated === false) || activated?.catalog_updated === false;
+      if (activated) warnings.push(...extraWarnings(activated));
+      if (!activated && args.protocol !== 'codex_subscription') {
+        el('message').textContent = '正在检查并启用…';
+        try {
+          activated = await activate(result.profile.id);
+          catalogWarning = activated.catalog_updated === false;
+          warnings.push(...extraWarnings(activated));
+        } catch (error) {
+          try { await refresh(); } catch (_) {}
+          await refreshSchedulingAfterConnectionChange();
+          throw new Error(['连接已保存，但启用失败：' + error.message, details, ...warnings].join(' '));
+        }
+      }
+      await refresh();
+      await refreshSchedulingAfterConnectionChange();
+      clearForm();
+      el('message').textContent = catalogWarning
+        ? '配置已保存，但模型列表更新失败'
+        : activated?.kind === 'jev'
+          ? 'Jev 线路已选中，重载后生效。'
+          : args.protocol !== 'codex_subscription'
+            ? '连接已保存并启用。'
+            : '订阅连接已保存。';
+      el('message').textContent = safeMessage([el('message').textContent, details, ...new Set(warnings)].join(' '), '连接已保存。');
+    } catch (error) {
+      el('message').textContent = safeMessage(error.message, '保存失败。');
+    } finally {
+      args.key = '';
+      activeSaveJob = '';
+      saveCancelRequested = false;
+      el('cancel-save-job').hidden = true;
+      setSaveBusy(false);
+      button.disabled = false;
+    }
+  });
+
+  (async () => {
+    try {
+      const initialized = await request('ui/initialize', {
+        protocolVersion: '2026-01-26',
+        appInfo: { name: 'Codex Provider Hub', version: '0.1.31' },
+        appCapabilities: {}
+      });
+      applyHostContext(initialized?.hostContext);
+      notify('ui/notifications/initialized');
+      updateProtocol();
+      renderSelectedModels();
+      await refresh();
+    } catch (error) {
+      el('profiles').textContent = '暂时无法读取连接。';
+      el('message').textContent = safeMessage(error.message, '无法连接本地服务。');
+    }
+  })();
+})();
+</script>
+</body>
+</html>

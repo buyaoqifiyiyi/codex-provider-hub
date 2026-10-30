@@ -1,0 +1,20 @@
+{
+  "name": "codex-provider-hub",
+  "version": "0.1.40",
+  "description": "Codex 内管理模型线路、密钥和子代理调度守卫。",
+  "author": {"name": "Local workspace"},
+  "mcpServers": "./.mcp.json",
+  "hooks": "./hooks/hooks.json",
+  "requires_local_executor": true,
+  "interface": {
+    "displayName": "模型连接中心",
+    "shortDescription": "管理模型接口和密钥",
+    "longDescription": "在 Codex 中管理本机模型连接与密钥，并提供子代理调度和任务交接守卫。",
+    "developerName": "Local workspace",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Guardrail"],
+    "composerIcon": "./assets/provider-hub.png",
+    "logo": "./assets/provider-hub.png",
+    "logoDark": "./assets/provider-hub-dark.png"
+  }
+}

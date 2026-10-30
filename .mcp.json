@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "codex-provider-hub": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["./scripts/start-provider-mcp.cjs"],
+      "cwd": ".",
+      "startup_timeout_sec": 30,
+      "tool_timeout_sec": 120
+    }
+  }
+}

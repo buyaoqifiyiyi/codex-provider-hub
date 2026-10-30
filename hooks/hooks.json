@@ -1,0 +1,18 @@
+{
+  "description": "Only checks subagent model choices and local runtime evidence.",
+  "hooks": {
+    "PreToolUse": [{
+      "matcher": "^(?:spawn_agent|Agent|collaborationspawn_agent|collaboration\\.spawn_agent|multi_agent_v1spawn_agent|multi_agent_v1__spawn_agent)$",
+      "hooks": [{"type": "command", "command": "node -e \"require(require('node:path').join(process.env.PLUGIN_ROOT??process.env.CLAUDE_PLUGIN_ROOT,'hooks','guard.cjs')).startStdin()\"", "timeout": 35, "statusMessage": "Checking subagent model selection"}]
+    }, {
+      "matcher": "^(?:followup_task|send_message|collaborationfollowup_task|collaborationsend_message|collaboration\\.followup_task|collaboration\\.send_message|multi_agent_v2__followup_task|multi_agent_v2__send_message)$",
+      "hooks": [{"type": "command", "command": "node -e \"require(require('node:path').join(process.env.PLUGIN_ROOT??process.env.CLAUDE_PLUGIN_ROOT,'hooks','guard.cjs')).startStdin()\"", "timeout": 5}]
+    }],
+    "PostToolUse": [{
+      "matcher": "^(?:spawn_agent|Agent|collaborationspawn_agent|collaboration\\.spawn_agent|multi_agent_v1spawn_agent|multi_agent_v1__spawn_agent|wait_agent|collaborationwait_agent|collaboration\\.wait_agent|multi_agent_v1wait_agent|multi_agent_v1__wait_agent)$",
+      "hooks": [{"type": "command", "command": "node -e \"require(require('node:path').join(process.env.PLUGIN_ROOT??process.env.CLAUDE_PLUGIN_ROOT,'hooks','guard.cjs')).startStdin()\"", "timeout": 5}]
+    }],
+    "SubagentStart": [{"hooks": [{"type": "command", "command": "node -e \"require(require('node:path').join(process.env.PLUGIN_ROOT??process.env.CLAUDE_PLUGIN_ROOT,'hooks','guard.cjs')).startStdin()\"", "timeout": 8}]}],
+    "SubagentStop": [{"hooks": [{"type": "command", "command": "node -e \"require(require('node:path').join(process.env.PLUGIN_ROOT??process.env.CLAUDE_PLUGIN_ROOT,'hooks','guard.cjs')).startStdin()\"", "timeout": 5}]}]
+  }
+}

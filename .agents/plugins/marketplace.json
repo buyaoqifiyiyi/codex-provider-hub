@@ -1,0 +1,10 @@
+{
+  "name": "codex-provider-hub-local",
+  "interface": {"displayName": "本地模型连接中心"},
+  "plugins": [{
+    "name": "codex-provider-hub",
+    "source": {"source": "local", "path": "./"},
+    "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+    "category": "Productivity"
+  }]
+}

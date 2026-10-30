@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 2,
+  "allowedFamilies": [],
+  "allowedEffortsByFamily": {},
+  "jevAdvisory": {
+    "enabled": false
+  }
+}

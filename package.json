@@ -1,0 +1,15 @@
+{
+  "name": "subagent-model-guard",
+  "version": "0.6.6",
+  "private": true,
+  "description": "Validate configured subagent models and connection bindings.",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.cjs"
+  }
+}

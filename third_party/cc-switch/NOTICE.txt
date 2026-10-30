@@ -1,0 +1,14 @@
+CC Switch source attribution
+
+The model picker selection, filtering and context formatting in ui/manager.html
+are adapted from src/components/providers/forms/FetchedModelPicker.tsx. The
+same-origin model-list endpoint and catalog-ID rules in
+cc_switch_model_discovery.py are adapted from src-tauri/src/services/model_fetch.rs.
+The model metadata matching in cc_switch_metadata.py and public reference URL
+in cc_switch_reference.py are adapted from src/lib/modelMetadata.ts and
+src/lib/modelsDev.ts.
+Copyright (c) 2025 Jason Young. Distributed under the MIT License in LICENSE.
+
+Upstream: https://github.com/farion1231/cc-switch
+Tag: v4.0.21
+Commit: c4db63c60d2a1ddcb4bd9f81152b9c6126413659

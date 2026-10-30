@@ -1,0 +1,5 @@
+mcp==2.3.0
+tomlkit==0.13.3
+zstandard==0.25.0
+Pillow==12.3.0
+pywin32==312; sys_platform == "win32"
